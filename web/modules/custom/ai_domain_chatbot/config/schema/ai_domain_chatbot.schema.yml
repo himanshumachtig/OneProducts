@@ -1,0 +1,10 @@
+ai_domain_chatbot.settings:
+  type: config_object
+  label: 'AI Domain Chatbot settings'
+  mapping:
+    domains:
+      type: string
+      label: 'Configured domains (one per line)'
+    max_pages:
+      type: integer
+      label: 'Max pages to crawl per domain'

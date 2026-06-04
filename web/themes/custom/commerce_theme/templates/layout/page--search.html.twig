@@ -1,0 +1,43 @@
+{#
+/**
+ * @file page--search.html.twig
+ * Search results page — uses shared header/footer.
+ * The default Drupal search form is hidden via CSS in style.css
+ * (.page-search selector set by html preprocess body class).
+ */
+#}
+
+{# ── Loading spinner ── #}
+<div id="spinner"
+     class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center"
+     style="z-index:9999;">
+  <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status">
+    <span class="visually-hidden">{{ 'Loading...'|t }}</span>
+  </div>
+</div>
+
+<div id="page-wrapper">
+
+  {% include directory ~ '/templates/layout/partials/site-header.html.twig' %}
+
+  <main id="main-content" role="main">
+
+    <div class="container-fluid page-header py-5">
+      <h1 class="text-center text-white display-6">{{ 'Search Results'|t }}</h1>
+      <ol class="breadcrumb justify-content-center mb-0">
+        <li class="breadcrumb-item"><a href="{{ path('<front>') }}">{{ 'Home'|t }}</a></li>
+        <li class="breadcrumb-item active text-white">{{ 'Search Results'|t }}</li>
+      </ol>
+    </div>
+
+    <div class="highlighted">{{ page.highlighted }}</div>
+
+    <div class="container py-5">
+      {{ page.content }}
+    </div>
+
+  </main>
+
+  {% include directory ~ '/templates/layout/partials/site-footer.html.twig' %}
+
+</div>

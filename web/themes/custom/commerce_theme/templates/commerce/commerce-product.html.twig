@@ -1,0 +1,150 @@
+{#
+/**
+ * @file
+ * Product detail page template (single.html equivalent).
+ *
+ * Available variables:
+ * - product: The commerce product entity.
+ * - product_entity: The product entity with methods.
+ */
+#}
+{%
+  set classes = [
+    'commerce-product',
+    'product--' ~ product_entity.bundle(),
+    product_entity.isPublished() ? 'product--published' : 'product--unpublished',
+  ]
+%}
+
+{# Page Header / Breadcrumb #}
+<div class="container-fluid page-header py-5">
+  <h1 class="text-center text-white display-6 wow fadeInUp" data-wow-delay="0.1s">
+    {{ product_entity.getTitle() }}
+  </h1>
+  <ol class="breadcrumb justify-content-center mb-0 wow fadeInUp" data-wow-delay="0.3s">
+    <li class="breadcrumb-item"><a href="/">{{ 'Home'|t }}</a></li>
+    <li class="breadcrumb-item"><a href="/products">{{ 'Shop'|t }}</a></li>
+    <li class="breadcrumb-item active text-white">{{ product_entity.getTitle() }}</li>
+  </ol>
+</div>
+
+{# Product Detail Section #}
+<div class="container-fluid py-5">
+  <div class="container py-5">
+    <article{{ attributes.addClass(classes) }}>
+      <div class="row g-4 mb-5">
+
+        {# Product Images #}
+        <div class="col-lg-8 col-xl-9">
+          <div class="row g-4">
+            <div class="col-lg-6">
+              <div class="border rounded">
+                <a href="#">
+                  {% if product.field_images is defined and product.field_images is not empty %}
+                    {{ product.field_images }}
+                  {% else %}
+                    <img src="{{ base_path ~ directory }}/images/product-1.png"
+                      class="img-fluid rounded" alt="{{ product_entity.getTitle() }}">
+                  {% endif %}
+                </a>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="row g-3">
+                {% if product.field_images is defined %}
+                  {% for image in product.field_images %}
+                    <div class="col-6">
+                      <div class="border rounded">
+                        <a href="#">{{ image }}</a>
+                      </div>
+                    </div>
+                  {% endfor %}
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# Product Info #}
+        <div class="col-lg-4 col-xl-3">
+          <div class="border-start ps-4">
+            <h4 class="text-muted mb-4">{{ 'SKU:'|t }} {{ sku ?? 'N/A' }}</h4>
+            <h1 class="display-5 mb-4">{{ product_entity.getTitle() }}</h1>
+
+            {# Price #}
+            <div class="mb-3">
+              {% if price is defined %}
+                <h5 class="text-primary fw-bold fs-3">{{ price }}</h5>
+              {% endif %}
+            </div>
+
+            {# Star rating placeholder #}
+            <div class="d-flex mb-4">
+              <i class="fa fa-star text-secondary"></i>
+              <i class="fa fa-star text-secondary"></i>
+              <i class="fa fa-star text-secondary"></i>
+              <i class="fa fa-star text-secondary"></i>
+              <i class="fa fa-star"></i>
+            </div>
+
+            {# Product body / description #}
+            {% if product.body is defined %}
+              <div class="mb-4">
+                {{ product.body }}
+              </div>
+            {% endif %}
+
+            {# Add to Cart Form #}
+            {{ product.variations }}
+
+            {# Share / Wishlist #}
+            <div class="d-flex mt-4">
+              <a href="#" class="btn btn-outline-secondary rounded-pill me-2">
+                <i class="fas fa-heart me-2"></i>{{ 'Wishlist'|t }}
+              </a>
+              <a href="#" class="btn btn-outline-secondary rounded-pill">
+                <i class="fas fa-share-alt me-2"></i>{{ 'Share'|t }}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Product Tabs: Description / Additional Info / Reviews #}
+      <div class="row g-4">
+        <div class="col-lg-12">
+          <nav>
+            <div class="nav nav-tabs mb-3" id="product-tab" role="tablist">
+              <button class="nav-link active border-white border-bottom-0" type="button"
+                data-bs-toggle="tab" data-bs-target="#tab-pane-1" role="tab">
+                {{ 'Description'|t }}
+              </button>
+              <button class="nav-link border-white border-bottom-0" type="button"
+                data-bs-toggle="tab" data-bs-target="#tab-pane-2" role="tab">
+                {{ 'Additional Info'|t }}
+              </button>
+            </div>
+          </nav>
+          <div class="tab-content" id="product-tabContent">
+            <div class="tab-pane fade show p-4 active" id="tab-pane-1" role="tabpanel">
+              {% if product.body is defined %}
+                {{ product.body }}
+              {% else %}
+                <p>{{ 'No description available.'|t }}</p>
+              {% endif %}
+            </div>
+            <div class="tab-pane fade p-4" id="tab-pane-2" role="tabpanel">
+              {% for field_name, field in product if field_name starts with 'field_' %}
+                <div class="row mb-3">
+                  <div class="col-3 fw-bold">{{ field_name|replace({'field_': ''})|replace({'_': ' '})|capitalize }}:</div>
+                  <div class="col-9">{{ field }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </article>
+  </div>
+</div>

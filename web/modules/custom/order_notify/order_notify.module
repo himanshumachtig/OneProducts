@@ -1,0 +1,53 @@
+<?php
+
+use Drupal\Core\Render\Markup;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_toolbar().
+ *
+ * Adds a notification bell to the admin toolbar showing unread order count.
+ */
+function order_notify_toolbar(): array {
+  $user = \Drupal::currentUser();
+  if (!$user->hasPermission('access administration pages')) {
+    return [];
+  }
+
+  $token = \Drupal::csrfToken()->get('session');
+
+  $html = '<div class="order-notify-wrap">'
+    . '<button class="order-notify-trigger" type="button" aria-haspopup="true" aria-expanded="false" title="' . t('New Orders') . '">'
+    .   '<span class="order-notify-icon"></span>'
+    .   '<span class="order-notify-label">' . t('Orders') . '</span>'
+    .   '<span class="order-notify-badge" hidden>0</span>'
+    . '</button>'
+    . '<div class="order-notify-dropdown" hidden>'
+    .   '<div class="order-notify-hdr">'
+    .     '<span class="order-notify-hdr-title">' . t('New Orders') . '</span>'
+    .     '<button class="order-notify-mark-read" type="button">' . t('Mark all read') . '</button>'
+    .   '</div>'
+    .   '<ul class="order-notify-list"><li class="order-notify-empty">' . t('Loading…') . '</li></ul>'
+    . '</div>'
+    . '</div>';
+
+  return [
+    'order_notifications' => [
+      '#type'   => 'toolbar_item',
+      'tab'     => ['#markup' => Markup::create($html)],
+      '#weight' => 200,
+      '#attached' => [
+        'library'        => ['order_notify/order-notify'],
+        'drupalSettings' => [
+          'orderNotify' => [
+            'countUrl'    => Url::fromRoute('order_notify.count')->toString(),
+            'markReadUrl' => Url::fromRoute('order_notify.mark_read')->toString(),
+            'dismissUrl'  => Url::fromRoute('order_notify.dismiss')->toString(),
+            'token'       => $token,
+          ],
+        ],
+      ],
+      '#cache' => ['contexts' => ['user']],
+    ],
+  ];
+}

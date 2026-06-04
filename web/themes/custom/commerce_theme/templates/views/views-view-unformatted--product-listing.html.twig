@@ -1,0 +1,13 @@
+{#
+/**
+ * @file
+ * Removes the views-row wrapper div so Bootstrap col-* classes from the
+ * product teaser template are direct children of the .row.g-4 container.
+ */
+#}
+{% if title %}
+  <h3>{{ title }}</h3>
+{% endif %}
+{% for row in rows %}
+  {{- row.content -}}
+{% endfor %}

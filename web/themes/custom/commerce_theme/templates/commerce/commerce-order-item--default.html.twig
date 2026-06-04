@@ -1,0 +1,53 @@
+{#
+/**
+ * @file
+ * Cart item row — one <tr> per product in the cart.
+ * Variables:
+ * - order_item:     The order item entity.
+ * - order_item_entity: Raw entity.
+ * - quantity:       Rendered quantity field (input + update).
+ * - unit_price:     Rendered unit price.
+ * - total_price:    Rendered line total.
+ * - delete_button:  Rendered remove/delete button.
+ */
+#}
+{% set purchased = order_item_entity.getPurchasedEntity() %}
+{% set product   = purchased ? purchased.getProduct() : null %}
+
+<tr class="cart-item align-middle">
+
+  {# Product name + link #}
+  <td>
+    <div class="d-flex align-items-center gap-3">
+      {% if product %}
+        <a href="{{ path('entity.commerce_product.canonical', {'commerce_product': product.id()}) }}"
+          class="text-dark fw-bold text-decoration-none">
+          {{ order_item_entity.label() }}
+        </a>
+      {% else %}
+        <span class="fw-bold">{{ order_item_entity.label() }}</span>
+      {% endif %}
+    </div>
+  </td>
+
+  {# Unit price #}
+  <td class="text-muted">{{ unit_price }}</td>
+
+  {# Quantity field (has update button baked in by Commerce) #}
+  <td style="min-width:130px">
+    <div class="commerce-order-item-quantity">
+      {{ quantity }}
+    </div>
+  </td>
+
+  {# Line total #}
+  <td class="fw-bold text-primary">{{ total_price }}</td>
+
+  {# Delete button #}
+  <td class="text-center">
+    <div class="commerce-order-item-delete">
+      {{ delete_button }}
+    </div>
+  </td>
+
+</tr>

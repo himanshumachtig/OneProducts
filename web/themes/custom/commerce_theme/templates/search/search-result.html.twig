@@ -1,0 +1,55 @@
+{#
+/**
+ * @file
+ * Styled search result card — shows product image, title, snippet.
+ * Variables: url, title, snippet, result_image, result_type, info_split
+ */
+#}
+<div class="col-sm-6 col-md-4 col-lg-3 mb-4">
+  <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden search-result-card">
+
+    {# Product image #}
+    <a href="{{ url }}" class="d-block overflow-hidden" style="height: 200px;">
+      {% if result_image %}
+        <img src="{{ result_image }}" alt="{{ title }}"
+          class="card-img-top w-100 h-100" style="object-fit: cover;">
+      {% else %}
+        <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-light">
+          <i class="fas fa-box-open fa-3x text-muted"></i>
+        </div>
+      {% endif %}
+    </a>
+
+    <div class="card-body p-3">
+
+      {# Type badge #}
+      {% if result_type %}
+        <span class="badge bg-primary rounded-pill px-3 py-1 mb-2" style="font-size: 0.7rem;">
+          {{ result_type|capitalize|replace({'_': ' '}) }}
+        </span>
+      {% endif %}
+
+      {# Title #}
+      {{ title_prefix }}
+      <h6 class="card-title fw-bold mb-2">
+        <a href="{{ url }}" class="text-dark text-decoration-none">{{ title }}</a>
+      </h6>
+      {{ title_suffix }}
+
+      {# Snippet #}
+      {% if snippet %}
+        <p class="card-text text-muted small mb-0" style="font-size: 0.82rem; line-height: 1.4;">
+          {{ snippet }}
+        </p>
+      {% endif %}
+
+    </div>
+
+    <div class="card-footer bg-transparent border-0 px-3 pb-3">
+      <a href="{{ url }}" class="btn btn-primary btn-sm rounded-pill w-100">
+        <i class="fas fa-eye me-1"></i>{{ 'View Product'|t }}
+      </a>
+    </div>
+
+  </div>
+</div>

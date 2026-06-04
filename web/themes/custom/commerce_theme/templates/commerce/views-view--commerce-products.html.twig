@@ -1,0 +1,172 @@
+{#
+/**
+ * @file
+ * Product listing view template (shop.html equivalent).
+ *
+ * Applies to: views named 'commerce_products' or similar.
+ */
+#}
+
+{# Page Header #}
+<div class="container-fluid page-header py-5">
+  <h1 class="text-center text-white display-6 wow fadeInUp" data-wow-delay="0.1s">
+    {{ title ?? 'Shop'|t }}
+  </h1>
+  <ol class="breadcrumb justify-content-center mb-0 wow fadeInUp" data-wow-delay="0.3s">
+    <li class="breadcrumb-item"><a href="/">{{ 'Home'|t }}</a></li>
+    <li class="breadcrumb-item active text-white">{{ 'Shop'|t }}</li>
+  </ol>
+</div>
+
+{# Services Strip #}
+<div class="container-fluid px-0">
+  <div class="row g-0">
+    <div class="col-6 col-md-4 col-lg-2 border-start border-end wow fadeInUp" data-wow-delay="0.1s">
+      <div class="p-4">
+        <div class="d-inline-flex align-items-center">
+          <i class="fa fa-sync-alt fa-2x text-primary"></i>
+          <div class="ms-4">
+            <h6 class="text-uppercase mb-2">{{ 'Free Return'|t }}</h6>
+            <p class="mb-0">{{ '30 days money back!'|t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 border-end wow fadeInUp" data-wow-delay="0.2s">
+      <div class="p-4">
+        <div class="d-flex align-items-center">
+          <i class="fab fa-telegram-plane fa-2x text-primary"></i>
+          <div class="ms-4">
+            <h6 class="text-uppercase mb-2">{{ 'Free Shipping'|t }}</h6>
+            <p class="mb-0">{{ 'On all orders'|t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 border-end wow fadeInUp" data-wow-delay="0.3s">
+      <div class="p-4">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-lock fa-2x text-primary"></i>
+          <div class="ms-4">
+            <h6 class="text-uppercase mb-2">{{ 'Secure Payment'|t }}</h6>
+            <p class="mb-0">{{ 'We Value Your Security'|t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 border-end wow fadeInUp" data-wow-delay="0.4s">
+      <div class="p-4">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-life-ring fa-2x text-primary"></i>
+          <div class="ms-4">
+            <h6 class="text-uppercase mb-2">{{ 'Support 24/7'|t }}</h6>
+            <p class="mb-0">{{ 'Online 24 hrs a day'|t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 border-end wow fadeInUp" data-wow-delay="0.5s">
+      <div class="p-4">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-credit-card fa-2x text-primary"></i>
+          <div class="ms-4">
+            <h6 class="text-uppercase mb-2">{{ 'Gift Cards'|t }}</h6>
+            <p class="mb-0">{{ 'On orders over $50'|t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 border-end wow fadeInUp" data-wow-delay="0.6s">
+      <div class="p-4">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-blog fa-2x text-primary"></i>
+          <div class="ms-4">
+            <h6 class="text-uppercase mb-2">{{ 'Online Service'|t }}</h6>
+            <p class="mb-0">{{ 'Free returns in 30 days'|t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Shop Layout #}
+<div class="container-fluid shop py-5">
+  <div class="container py-5">
+    <div class="row g-4">
+
+      {# Sidebar Filters #}
+      <div class="col-lg-3 wow fadeInUp" data-wow-delay="0.1s">
+        {% if exposed %}
+          <div class="product-categories mb-4">
+            <h4>{{ 'Filter Products'|t }}</h4>
+            {{ exposed }}
+          </div>
+        {% else %}
+          <div class="product-categories mb-4">
+            <h4>{{ 'Product Categories'|t }}</h4>
+            <ul class="list-unstyled">
+              <li>
+                <div class="categories-item">
+                  <a href="?category=accessories" class="text-dark">
+                    <i class="fas fa-plug text-secondary me-2"></i>{{ 'Accessories'|t }}
+                  </a>
+                </div>
+              </li>
+              <li>
+                <div class="categories-item">
+                  <a href="?category=electronics" class="text-dark">
+                    <i class="fas fa-laptop text-secondary me-2"></i>{{ 'Electronics'|t }}
+                  </a>
+                </div>
+              </li>
+              <li>
+                <div class="categories-item">
+                  <a href="?category=mobiles" class="text-dark">
+                    <i class="fas fa-mobile-alt text-secondary me-2"></i>{{ 'Mobiles & Tablets'|t }}
+                  </a>
+                </div>
+              </li>
+              <li>
+                <div class="categories-item">
+                  <a href="?category=smart-tv" class="text-dark">
+                    <i class="fas fa-tv text-secondary me-2"></i>{{ 'Smart TV'|t }}
+                  </a>
+                </div>
+              </li>
+            </ul>
+          </div>
+        {% endif %}
+      </div>
+
+      {# Product Grid #}
+      <div class="col-lg-9">
+
+        {# Products container — JS appends new products here #}
+        <div id="products-grid-container" class="row g-4">
+          {% if rows %}
+            {{ rows }}
+          {% elseif empty %}
+            <div class="col-12">
+              <div class="alert alert-info">{{ empty }}</div>
+            </div>
+          {% endif %}
+        </div>
+
+        {# Hidden pager — JS reads next page URL from here #}
+        {% if pager %}
+          <div id="products-pager" class="d-none" aria-hidden="true">
+            {{ pager }}
+          </div>
+          <div class="col-12 text-center mt-5" id="load-more-wrapper">
+            <button id="load-more-btn" class="btn btn-primary rounded-pill px-5 py-3 fw-semibold">
+              <i class="fas fa-plus me-2"></i>{{ 'Load More Products'|t }}
+            </button>
+          </div>
+        {% endif %}
+
+      </div>
+
+    </div>
+  </div>
+</div>

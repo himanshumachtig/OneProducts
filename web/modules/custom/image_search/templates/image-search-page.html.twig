@@ -1,0 +1,25 @@
+<div class="image-search-wrapper">
+  <div class="image-search-upload-area" id="image-search-drop-zone">
+    <div class="upload-inner">
+      <svg class="upload-icon" viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M32 8 L32 40 M20 20 L32 8 L44 20" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 44 L12 56 L52 56 L52 44" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"/>
+      </svg>
+      <p class="upload-label">{{ 'Drag & drop an image here'|t }}</p>
+      <p class="upload-or">{{ 'or'|t }}</p>
+      <label class="upload-btn" for="image-search-input">{{ 'Choose Image'|t }}</label>
+      <input type="file" id="image-search-input" accept="image/*" class="visually-hidden">
+    </div>
+    <div class="upload-preview" id="image-search-preview" hidden>
+      <img id="image-search-thumb" src="" alt="">
+      <button type="button" class="upload-clear" id="image-search-clear" aria-label="{{ 'Remove image'|t }}">&times;</button>
+    </div>
+  </div>
+
+  <div class="image-search-status" id="image-search-status" aria-live="polite"></div>
+
+  <div class="image-search-results" id="image-search-results" hidden>
+    <h2 class="results-heading">{{ 'Similar Products'|t }}</h2>
+    <div class="results-grid" id="image-search-grid"></div>
+  </div>
+</div>

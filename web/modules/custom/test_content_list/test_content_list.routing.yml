@@ -1,0 +1,7 @@
+test_content_list.page:
+  path: '/test-content'
+  defaults:
+    _controller: '\Drupal\test_content_list\Controller\TestContentController::listContent'
+    _title: 'Test Content'
+  requirements:
+    _access: 'TRUE'

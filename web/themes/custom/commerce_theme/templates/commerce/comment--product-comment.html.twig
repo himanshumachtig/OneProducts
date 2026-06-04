@@ -1,0 +1,28 @@
+{#
+/**
+ * Comment card for product_comment type (text-only, no rating).
+ */
+#}
+{% set author_name = comment.getOwner().getDisplayName() %}
+{% set first_letter = author_name|first|upper %}
+
+<div class="product-comment-card">
+  <div class="d-flex align-items-start gap-3">
+
+    {# Avatar #}
+    <div class="comment-avatar flex-shrink-0">{{ first_letter }}</div>
+
+    <div class="flex-grow-1">
+      {# Header: name + date #}
+      <div class="d-flex align-items-center justify-content-between mb-1">
+        <span class="fw-semibold" style="font-size:.92rem;">{{ author_name }}</span>
+        <span class="text-muted" style="font-size:.76rem;">{{ comment.getCreatedTime()|date('d M Y') }}</span>
+      </div>
+
+      {# Comment body #}
+      {% if comment.comment_body.value %}
+        <p class="comment-body mb-0">{{ comment.comment_body.value }}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>

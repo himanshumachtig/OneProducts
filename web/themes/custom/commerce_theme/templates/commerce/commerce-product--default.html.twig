@@ -1,0 +1,484 @@
+{#
+/**
+ * @file
+ * Commerce product full detail page template.
+ *
+ * Variables:
+ * - product_entity   : The commerce_product entity.
+ * - product          : Rendered fields (product.body, product.variations, …).
+ * - url              : Canonical URL.
+ * - price            : Price object (set by preprocess).
+ * - list_price       : MRP Price object (set by preprocess).
+ * - discount         : Integer discount % (set by preprocess).
+ * - sku              : SKU string (set by preprocess).
+ * - gallery_images   : Array of absolute image URLs (main + gallery).
+ * - color_options    : Array of {label, hex, attribute_id} (may be empty).
+ * - size_options     : Array of {label, attribute_id} (may be empty).
+ */
+#}
+{{ attach_library('commerce_theme/product-reviews') }}
+{% set variation   = product_entity.getDefaultVariation() %}
+{% set tagline     = product_entity.field_tagline.value %}
+{% set cat_field   = product_entity.field_category %}
+{% set cat_name    = cat_field is not empty ? cat_field.entity.label() : '' %}
+
+{# Resolve main product image (first gallery image, or fallback) #}
+{% if gallery_images is not empty %}
+  {% set img_url = gallery_images[0] %}
+{% elseif product_entity.field_product_image is not empty and product_entity.field_product_image.entity %}
+  {% set img_url = file_url(product_entity.field_product_image.entity.fileUri) %}
+{% else %}
+  {% set img_url = base_path ~ directory ~ '/images/product-1.png' %}
+{% endif %}
+
+{# ── Breadcrumb ─────────────────────────────────────────────────────────── #}
+<div class="container-fluid page-header py-5">
+  <h1 class="text-center text-white display-6">{{ product_entity.getTitle() }}</h1>
+  <ol class="breadcrumb justify-content-center mb-0">
+    <li class="breadcrumb-item"><a href="/">{{ 'Home'|t }}</a></li>
+    <li class="breadcrumb-item"><a href="/products">{{ 'Shop'|t }}</a></li>
+    <li class="breadcrumb-item active text-white">{{ product_entity.getTitle() }}</li>
+  </ol>
+</div>
+
+<div class="container-fluid py-5">
+  <div class="container py-5">
+    <div class="row g-5 mb-5">
+
+      {# ── Left column: main image + thumbnail gallery ────────────────────── #}
+      <div class="col-lg-6">
+
+        {# Main image with zoom lens #}
+        <div class="border rounded bg-light text-center product-detail-img-wrap"
+             style="height:420px;position:relative;" id="product-img-wrap">
+          <div id="product-img-lens"
+               style="display:none;position:absolute;border:2px solid var(--bs-primary);
+                      background:rgba(242,139,0,.08);pointer-events:none;z-index:10;
+                      border-radius:4px;cursor:crosshair;"></div>
+          <img src="{{ img_url }}"
+               id="product-img-main"
+               class="img-fluid h-100 w-100"
+               style="object-fit:contain;padding:1rem;display:block;"
+               alt="{{ product_entity.getTitle() }}">
+        </div>
+
+        {# Zoom result panel (positioned by JS) #}
+        <div id="product-hover-zoom"
+             style="display:none;position:absolute;width:420px;height:420px;
+                    border:1px solid #dee2e6;border-radius:8px;background:#fff;
+                    box-shadow:0 8px 32px rgba(0,0,0,.15);overflow:hidden;
+                    background-repeat:no-repeat;pointer-events:none;z-index:200;"></div>
+
+        {# Thumbnail gallery strip #}
+        {% if gallery_images|length > 1 %}
+          <div class="product-thumb-gallery" id="product-thumb-gallery">
+            {% for img in gallery_images %}
+              <div class="product-thumb{% if loop.first %} active{% endif %}"
+                   data-full="{{ img }}">
+                <img src="{{ img }}" alt="{{ product_entity.getTitle() }}">
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {# Zoom inline script — runs immediately, updates on every mouseenter #}
+        <script>
+        (function () {
+          var ZOOM   = 2;
+          var wrap   = document.getElementById('product-img-wrap');
+          var img    = document.getElementById('product-img-main');
+          var lens   = document.getElementById('product-img-lens');
+          var result = document.getElementById('product-hover-zoom');
+
+          function setup() {
+            var iw = img.offsetWidth, ih = img.offsetHeight;
+            var rw = result.offsetWidth, rh = result.offsetHeight;
+            var lw = rw / ZOOM, lh = rh / ZOOM;
+            lens.style.width  = lw + 'px';
+            lens.style.height = lh + 'px';
+            result.style.top  = wrap.offsetTop + 'px';
+            result.style.backgroundImage = 'url("' + img.src + '")';
+            result.style.backgroundSize  = (iw * ZOOM) + 'px ' + (ih * ZOOM) + 'px';
+          }
+
+          function getPos(e) {
+            var r = img.getBoundingClientRect();
+            return { x: e.clientX - r.left, y: e.clientY - r.top };
+          }
+
+          function move(e) {
+            var pos = getPos(e);
+            var iw  = img.offsetWidth, ih = img.offsetHeight;
+            var lw  = lens.offsetWidth, lh = lens.offsetHeight;
+            var imgR  = img.getBoundingClientRect();
+            var wrapR = wrap.getBoundingClientRect();
+            var offX = imgR.left - wrapR.left;
+            var offY = imgR.top  - wrapR.top;
+            var lx = Math.max(0, Math.min(pos.x - lw / 2, iw - lw));
+            var ly = Math.max(0, Math.min(pos.y - lh / 2, ih - lh));
+            lens.style.left = (offX + lx) + 'px';
+            lens.style.top  = (offY + ly) + 'px';
+            result.style.backgroundPosition = '-' + (lx * ZOOM) + 'px -' + (ly * ZOOM) + 'px';
+          }
+
+          function show() { setup(); lens.style.display = 'block'; result.style.display = 'block'; }
+          function hide() { lens.style.display = 'none';  result.style.display = 'none'; }
+
+          wrap.addEventListener('mouseenter', show);
+          wrap.addEventListener('mousemove',  move);
+          wrap.addEventListener('mouseleave', hide);
+        })();
+        </script>
+      </div>
+
+      {# ── Right column: info, attributes, add-to-cart ───────────────────── #}
+      <div class="col-lg-6">
+
+        {# Category badge #}
+        {% if cat_name %}
+          <span class="badge bg-primary text-white mb-2 rounded-pill px-3 py-1"
+                style="font-size:.75rem;">{{ cat_name }}</span>
+        {% endif %}
+
+        {# Star rating — dynamic from real reviews #}
+        <div class="d-flex align-items-center mb-2">
+          {% for i in 1..5 %}
+            {% if i <= avg_rating %}
+              <i class="fa fa-star text-warning me-1"></i>
+            {% elseif i - 0.5 <= avg_rating %}
+              <i class="fa fa-star-half-alt text-warning me-1"></i>
+            {% else %}
+              <i class="fa fa-star text-muted me-1"></i>
+            {% endif %}
+          {% endfor %}
+          {% if review_count > 0 %}
+            <small class="text-muted ms-1">({{ review_count }} {{ 'reviews'|t }})</small>
+          {% else %}
+            <small class="text-muted ms-1">{{ 'No reviews yet'|t }}</small>
+          {% endif %}
+        </div>
+
+        <h1 class="display-5 mb-2">{{ product_entity.getTitle() }}</h1>
+
+        {% if tagline %}
+          <p class="text-muted fs-5 mb-3 fst-italic">{{ tagline }}</p>
+        {% endif %}
+
+        {# Price #}
+        {% if price %}
+          <div class="mb-1 d-flex align-items-center gap-2 flex-wrap" id="product-price-row">
+            <h2 class="text-primary fw-bold mb-0" id="product-price">{{ price|commerce_price_format }}</h2>
+            <span class="text-muted text-decoration-line-through fs-5" id="product-list-price"{% if not list_price %} style="display:none"{% endif %}>
+              {% if list_price %}{{ list_price|commerce_price_format }}{% endif %}
+            </span>
+            <span class="badge bg-danger rounded-pill px-3 py-2" id="product-discount"{% if discount <= 0 %} style="display:none"{% endif %}>
+              {{ discount }}% OFF
+            </span>
+          </div>
+          <p class="inclusive-taxes-note">{{ 'inclusive of all taxes'|t }}</p>
+          <p id="product-stock-status" class="mb-0"></p>
+        {% endif %}
+
+        {% if sku %}
+          <p class="text-muted mb-3">
+            <strong>{{ 'SKU:'|t }}</strong>
+            <span class="font-monospace" id="product-sku-value">{{ sku }}</span>
+          </p>
+        {% endif %}
+
+        {# Short description preview #}
+        {% if product_entity.body.0.value %}
+          <div class="mb-3 border-top pt-3 text-muted" style="font-size:.95rem;">
+            {{ product_entity.body.0.value|striptags|slice(0,200) }}…
+          </div>
+        {% endif %}
+
+        {# ── Color variations ─────────────────────────────────────────────── #}
+        {% if color_options is not empty %}
+          <div class="mb-3">
+            <p class="product-attr-label mb-2">
+              {{ 'MORE COLORS'|t }}
+              <span class="selected-value product-selected-color-name"></span>
+            </p>
+            <div class="product-color-swatches">
+              {% for color in color_options %}
+                <div class="product-color-swatch"
+                     title="{{ color.label }}"
+                     data-color="{{ color.label }}"
+                     data-attribute-id="{{ color.attribute_id }}"
+                     style="background-color:{{ color.hex }};"
+                     role="button"
+                     aria-label="{{ color.label }}"></div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {# ── Storage selector (phones / tablets / laptops) ────────────────────── #}
+        {% if storage_options is not empty %}
+          <div class="mb-3">
+            <p class="product-attr-label mb-2">{{ 'SELECT STORAGE'|t }}</p>
+            <div class="product-size-selector">
+              {% for stor in storage_options %}
+                <button type="button"
+                        class="product-storage-btn product-size-btn"
+                        data-storage="{{ stor.label }}"
+                        data-attribute-id="{{ stor.attribute_id }}">
+                  {{ stor.label }}
+                </button>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {# ── Size / Shoe Number / Age selector (category-aware) ─────────────── #}
+        {% if size_options is not empty and size_selector_label %}
+          <div class="mb-3">
+            <p class="product-attr-label mb-2">
+              {{ size_selector_label|t }}
+              {% if size_selector_label == 'SELECT SIZE' %}
+                <a href="#size-chart" class="size-chart-link">{{ 'SIZE CHART'|t }} &rsaquo;</a>
+              {% endif %}
+            </p>
+            <div class="product-size-selector">
+              {% for size in size_options %}
+                <button type="button"
+                        class="product-size-btn"
+                        data-size="{{ size.label }}"
+                        data-attribute-id="{{ size.attribute_id }}">
+                  {{ size.label }}
+                </button>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {# ── Commerce add-to-cart form ─────────────────────────────────────── #}
+        {# Native attribute <select> elements are hidden via JS and replaced by
+           the color / size / storage UI above. Quantity + submit button remain. #}
+        <div class="commerce-add-to-cart-wrapper mt-2">
+          {{ product.variations }}
+        </div>
+
+        {# Action row #}
+        <div class="d-flex gap-2 mt-4">
+          <button type="button"
+                  id="product-wishlist-btn"
+                  class="btn btn-outline-secondary rounded-pill px-4"
+                  data-product-id="{{ product_entity.id() }}"
+                  data-title="{{ product_entity.getTitle() }}"
+                  data-url="{{ url }}"
+                  data-price="{{ price ? price|commerce_price_format : '' }}"
+                  data-image="{{ gallery_images[0] ?? '' }}"
+                  title="{{ 'Add to Wishlist'|t }}">
+            <i class="far fa-heart me-2"></i>{{ 'Wishlist'|t }}
+          </button>
+          <a href="#" class="btn btn-outline-secondary rounded-pill px-4">
+            <i class="fas fa-share-alt me-2"></i>{{ 'Share'|t }}
+          </a>
+        </div>
+
+      </div>{# end right column #}
+    </div>{# end row #}
+
+    {# ── Description / Specifications tabs ─────────────────────────────────── #}
+    <div class="row">
+      <div class="col-12">
+        {# Count reviews for tab label #}
+        {% set review_count = product_entity.field_product_reviews.comment_count ?? 0 %}
+
+        <ul class="nav nav-tabs mb-3" role="tablist">
+          <li class="nav-item">
+            <button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#tab-desc">
+              {{ 'Description'|t }}
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-specs">
+              {{ 'Specifications'|t }}
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-reviews">
+              {{ 'Reviews'|t }}
+              {% if review_count > 0 %}
+                <span class="badge bg-primary rounded-pill ms-1">{{ review_count }}</span>
+              {% endif %}
+            </button>
+          </li>
+        </ul>
+        <div class="tab-content border rounded p-4">
+
+          <div class="tab-pane fade show active" id="tab-desc">
+            {% if product.body %}
+              {{ product.body }}
+            {% else %}
+              <p class="text-muted">{{ 'No description provided.'|t }}</p>
+            {% endif %}
+          </div>
+
+          {# ── Reviews tab ─────────────────────────────────────────────────── #}
+          <script>
+          document.addEventListener('DOMContentLoaded', function () {
+            var form = document.querySelector('.comment-product-review-form');
+            if (!form || form.dataset.starsDone) return;
+            form.dataset.starsDone = '1';
+            var sel = form.querySelector('select[name="field_rating"]');
+            if (!sel) return;
+
+            // Insert star picker BEFORE the subject field wrapper (not inside the hidden rating div)
+            var subjectWrapper = form.querySelector('.field--name-subject');
+            if (!subjectWrapper) return;
+
+            var lbl = document.createElement('div');
+            lbl.className = 'star-picker-label';
+            lbl.textContent = 'Your Rating *';
+            var picker = document.createElement('div');
+            picker.className = 'star-picker';
+            var err = document.createElement('div');
+            err.className = 'star-picker-error';
+            err.textContent = 'Please select a star rating.';
+
+            for (var i = 5; i >= 1; i--) {
+              var r = document.createElement('input');
+              r.type = 'radio'; r.name = 'star_visual'; r.id = 'sp' + i; r.value = i;
+              var l = document.createElement('label');
+              l.htmlFor = 'sp' + i;
+              l.innerHTML = '<i class="fas fa-star"></i>';
+              l.title = i + ' star(s)';
+              (function(v){ r.addEventListener('change', function(){ sel.value = v; err.style.display='none'; }); })(i);
+              picker.appendChild(r); picker.appendChild(l);
+            }
+
+            form.insertBefore(lbl, subjectWrapper);
+            form.insertBefore(picker, subjectWrapper);
+            form.insertBefore(err, subjectWrapper);
+
+            form.addEventListener('submit', function(e){
+              if (!sel.value || sel.value === '_none'){
+                e.preventDefault(); err.style.display='block';
+                picker.scrollIntoView({behavior:'smooth',block:'center'});
+              }
+            });
+
+            // Rename Save button
+            form.querySelectorAll('input[type="submit"]').forEach(function(btn){
+              if (btn.value === 'Save') btn.value = 'Submit Review';
+              if (btn.value === 'Preview') btn.style.display = 'none';
+            });
+
+            // Placeholders
+            var si = form.querySelector('[name="subject[0][value]"]');
+            if (si) si.placeholder = 'Give your review a title…';
+            var ta = form.querySelector('[name="field_review_body[0][value]"]');
+            if (ta) { ta.placeholder = 'Share your experience with this product…'; ta.rows = 4; }
+          });
+          </script>
+          <div class="tab-pane fade" id="tab-reviews">
+            <div class="product-reviews-wrapper pt-3">
+
+              {# Existing reviews #}
+              {% if review_count > 0 %}
+                {{ review_comments }}
+              {% else %}
+                <div class="no-reviews-msg">
+                  <i class="far fa-comment-dots"></i>
+                  {{ 'No reviews yet. Be the first to share your experience!'|t }}
+                </div>
+              {% endif %}
+
+              {# Review form / status message #}
+              {% if can_review %}
+                <div class="review-form-wrapper mt-4">
+                  <h6 class="fw-bold mb-3">
+                    <i class="fas fa-pen me-2 text-warning"></i>{{ 'Write a Review'|t }}
+                  </h6>
+                  {{ review_form }}
+                </div>
+              {% elseif already_reviewed %}
+                <div class="alert alert-success rounded-3 mt-3 border-0" style="background:#e8f5e9;">
+                  <i class="fas fa-check-circle me-2 text-success"></i>{{ 'You have already reviewed this product. Thank you!'|t }}
+                </div>
+              {% elseif logged_in %}
+                <div class="alert alert-warning rounded-3 mt-3 border-0" style="background:#fff8e1;">
+                  <i class="fas fa-shopping-bag me-2 text-warning"></i>{{ 'Only customers who have purchased this product can leave a review.'|t }}
+                </div>
+              {% else %}
+                <div class="alert alert-info rounded-3 mt-3 border-0" style="background:#e3f2fd;">
+                  <i class="fas fa-sign-in-alt me-2"></i>
+                  <a href="/user/login" class="fw-semibold">{{ 'Log in'|t }}</a> {{ 'and purchase this product to leave a review.'|t }}
+                </div>
+              {% endif %}
+
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="tab-specs">
+            <table class="table table-bordered mb-0">
+              <tbody>
+                {% if sku %}
+                  <tr>
+                    <th class="bg-light" style="width:180px">{{ 'SKU'|t }}</th>
+                    <td class="font-monospace">{{ sku }}</td>
+                  </tr>
+                {% endif %}
+                {% if price %}
+                  <tr>
+                    <th class="bg-light">{{ 'Price'|t }}</th>
+                    <td>
+                      <span class="fw-bold text-primary">{{ price|commerce_price_format }}</span>
+                      {% if list_price %}
+                        <span class="text-muted text-decoration-line-through ms-2">
+                          {{ list_price|commerce_price_format }}
+                        </span>
+                      {% endif %}
+                      {% if discount > 0 %}
+                        <span class="badge bg-danger ms-2">{{ discount }}% OFF</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endif %}
+                {% if cat_name %}
+                  <tr>
+                    <th class="bg-light">{{ 'Category'|t }}</th>
+                    <td>{{ cat_name }}</td>
+                  </tr>
+                {% endif %}
+                {% if tagline %}
+                  <tr>
+                    <th class="bg-light">{{ 'Tagline'|t }}</th>
+                    <td class="fst-italic">{{ tagline }}</td>
+                  </tr>
+                {% endif %}
+                {% if storage_options is not empty %}
+                  <tr>
+                    <th class="bg-light">{{ 'Storage Options'|t }}</th>
+                    <td>{{ storage_options|map(s => s.label)|join(', ') }}</td>
+                  </tr>
+                {% endif %}
+                {% if size_options is not empty and size_selector_label %}
+                  <tr>
+                    <th class="bg-light">
+                      {% if size_selector_label == 'SELECT SHOE SIZE' %}{{ 'Shoe Sizes'|t }}
+                      {% elseif size_selector_label == 'SELECT AGE' %}{{ 'Age Groups'|t }}
+                      {% else %}{{ 'Available Sizes'|t }}{% endif %}
+                    </th>
+                    <td>{{ size_options|map(s => s.label)|join(', ') }}</td>
+                  </tr>
+                {% endif %}
+                {% if color_options is not empty %}
+                  <tr>
+                    <th class="bg-light">{{ 'Available Colors'|t }}</th>
+                    <td>{{ color_options|map(c => c.label)|join(', ') }}</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

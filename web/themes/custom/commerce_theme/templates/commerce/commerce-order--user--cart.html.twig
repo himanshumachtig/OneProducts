@@ -1,0 +1,95 @@
+{#
+/**
+ * @file
+ * Full cart page — Commerce order in "user cart" display.
+ * Variables:
+ * - order_entity:  The order entity.
+ * - order_items:   Rendered order item rows (each has qty field + delete button).
+ * - totals:        Rendered price summary block.
+ */
+#}
+
+{# Breadcrumb header #}
+<div class="container-fluid page-header py-5">
+  <h1 class="text-center text-white display-6 wow fadeInUp" data-wow-delay="0.1s">
+    {{ 'Shopping Cart'|t }}
+  </h1>
+  <ol class="breadcrumb justify-content-center mb-0 wow fadeInUp" data-wow-delay="0.3s">
+    <li class="breadcrumb-item"><a href="/">{{ 'Home'|t }}</a></li>
+    <li class="breadcrumb-item active text-white">{{ 'Cart'|t }}</li>
+  </ol>
+</div>
+
+<div class="container-fluid py-5">
+  <div class="container py-5">
+
+    {% if order_items %}
+
+      {# Cart table #}
+      <div class="table-responsive mb-4">
+        <table class="table align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>{{ 'Product'|t }}</th>
+              <th>{{ 'Price'|t }}</th>
+              <th>{{ 'Quantity'|t }}</th>
+              <th>{{ 'Total'|t }}</th>
+              <th class="text-center">{{ 'Remove'|t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ order_items }}
+          </tbody>
+        </table>
+      </div>
+
+      {# Cart actions row #}
+      <div class="d-flex justify-content-between flex-wrap gap-3 mb-5">
+        <a href="/products" class="btn btn-outline-primary rounded-pill px-4">
+          <i class="fas fa-arrow-left me-2"></i>{{ 'Continue Shopping'|t }}
+        </a>
+      </div>
+
+      {# Order summary #}
+      <div class="row justify-content-end">
+        <div class="col-sm-10 col-md-8 col-lg-5">
+          <div class="bg-light rounded p-4">
+            <h4 class="mb-4 fw-bold">{{ 'Cart'|t }} <span class="fw-normal">{{ 'Total'|t }}</span></h4>
+
+            {{ totals }}
+
+            <div class="d-grid mt-4">
+              <a href="/checkout" class="btn btn-primary rounded-pill py-3 text-uppercase fw-bold">
+                <i class="fas fa-lock me-2"></i>{{ 'Proceed to Checkout'|t }}
+              </a>
+            </div>
+            <div class="text-center mt-3">
+              <small class="text-muted">
+                <i class="fas fa-shield-alt me-1"></i>
+                {{ 'Secure checkout'|t }}
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    {% else %}
+
+      {# Empty cart state #}
+      <div class="text-center py-5">
+        <div class="mb-4" style="font-size:5rem;color:#dee2e6;">
+          <i class="fas fa-shopping-cart"></i>
+        </div>
+        <h3 class="fw-bold mb-3">{{ 'Your cart is empty'|t }}</h3>
+        <p class="text-muted mb-4">
+          {{ 'Looks like you haven\'t added anything to your cart yet.'|t }}
+        </p>
+        <a href="/products" class="btn btn-primary rounded-pill px-5 py-3">
+          <i class="fas fa-store me-2"></i>{{ 'Start Shopping'|t }}
+        </a>
+      </div>
+
+    {% endif %}
+
+  </div>
+</div>

@@ -1,0 +1,224 @@
+{#
+/**
+ * @file
+ * Shop listing page — view: product_catalog / display: page_shop
+ * Variables: rows, empty, exposed, pager, active_category, search_title
+ */
+#}
+
+{# Page header #}
+<div class="container-fluid page-header py-5">
+  <h1 class="text-center text-white display-6 wow fadeInUp" data-wow-delay="0.1s">{{ 'Shop'|t }}</h1>
+  <ol class="breadcrumb justify-content-center mb-0 wow fadeInUp" data-wow-delay="0.3s">
+    <li class="breadcrumb-item"><a href="/">{{ 'Home'|t }}</a></li>
+    <li class="breadcrumb-item active text-white">{{ 'Shop'|t }}</li>
+  </ol>
+</div>
+
+{# Services strip #}
+<div class="container-fluid px-0 border-bottom mb-0">
+  <div class="row g-0 text-center">
+    {% for icon, label in {
+      'fa-sync-alt':         'Free Return',
+      'fa-telegram-plane fab': 'Free Shipping',
+      'fa-life-ring':        'Support 24/7',
+      'fa-lock':             'Secure Payment',
+      'fa-credit-card':      'Gift Cards',
+      'fa-blog':             'Online Service'
+    } %}
+      <div class="col-6 col-md-4 col-lg-2 border-end py-3">
+        <i class="fa {{ icon }} fa-2x text-primary mb-2 d-block"></i>
+        <small class="text-uppercase fw-bold">{{ label|t }}</small>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+{# Shop grid #}
+<div class="container-fluid shop py-5">
+  <div class="container py-5">
+    <div class="row g-4">
+
+      {# ── Sidebar ─────────────────────────────── #}
+      <div class="col-lg-3 wow fadeInUp" data-wow-delay="0.1s">
+
+        {# Search box #}
+        <div class="mb-4">
+          <form action="/products" method="get">
+            <div class="input-group">
+              <input class="form-control" type="text" name="title"
+                value="{{ search_title }}"
+                placeholder="{{ 'Search products…'|t }}">
+              {% if active_category %}
+                <input type="hidden" name="field_category_target_id" value="{{ active_category }}">
+              {% endif %}
+              <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i></button>
+            </div>
+          </form>
+        </div>
+
+        {# Category links #}
+        <div class="mb-4">
+          <h5 class="fw-bold border-bottom pb-2 mb-3">{{ 'Categories'|t }}</h5>
+          <ul class="list-unstyled mb-0">
+
+            {# All Products #}
+            <li class="mb-1">
+              <a href="/products"
+                class="d-flex justify-content-between align-items-center py-2 px-3 rounded text-decoration-none
+                       {{ active_category is empty ? 'bg-primary text-white' : 'text-dark hover-primary' }}">
+                <span><i class="fas fa-th-large me-2"></i>{{ 'All Products'|t }}</span>
+              </a>
+            </li>
+
+            {# Individual categories — IDs match what was seeded #}
+            {% set cats = [
+              {'tid': '6',  'name': 'Phones',      'icon': 'fa-mobile-alt'},
+              {'tid': '7',  'name': 'Laptops',     'icon': 'fa-laptop'},
+              {'tid': '8',  'name': 'Audio',       'icon': 'fa-headphones'},
+              {'tid': '9',  'name': 'TVs',         'icon': 'fa-tv'},
+              {'tid': '5',  'name': 'Tablets',     'icon': 'fa-tablet-alt'},
+              {'tid': '3',  'name': 'Accessories', 'icon': 'fa-plug'},
+            ] %}
+            {% for cat in cats %}
+              <li class="mb-1">
+                <a href="/products?field_category_target_id={{ cat.tid }}"
+                  class="d-flex justify-content-between align-items-center py-2 px-3 rounded text-decoration-none
+                         {{ active_category == cat.tid ? 'bg-primary text-white' : 'text-dark' }}">
+                  <span><i class="fas {{ cat.icon }} me-2"></i>{{ cat.name|t }}</span>
+                  <i class="fas fa-chevron-right small opacity-50"></i>
+                </a>
+              </li>
+            {% endfor %}
+
+          </ul>
+        </div>
+
+        {# Exposed filter form (hidden — category handled via links above) #}
+        {% if exposed %}
+          <div class="d-none">{{ exposed }}</div>
+        {% endif %}
+
+      </div>
+
+      {# ── Product grid ─────────────────────────── #}
+      <div class="col-lg-9">
+
+        {# ── Results header ── #}
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+          <div>
+            {% if search_title %}
+              <h5 class="mb-0 fw-semibold text-dark">
+                {{ search_title|capitalize }}
+                <span class="text-muted fw-normal fs-6 ms-2">— {{ total_rows }} {{ 'items'|t }}</span>
+              </h5>
+            {% elseif active_category %}
+              <p class="mb-0 text-muted">{{ 'Filtered products'|t }}
+                {% if total_rows %}<span class="ms-1 fw-semibold text-dark">({{ total_rows }})</span>{% endif %}
+              </p>
+            {% else %}
+              <p class="mb-0 text-muted">{{ 'All Products'|t }}
+                {% if total_rows %}<span class="ms-1 fw-semibold text-dark">({{ total_rows }})</span>{% endif %}
+              </p>
+            {% endif %}
+          </div>
+          {% if search_title or active_category %}
+            <a href="/products" class="btn btn-sm btn-outline-danger rounded-pill border-danger">
+              <i class="fas fa-times me-1"></i>{{ 'Clear'|t }}
+            </a>
+          {% endif %}
+        </div>
+
+        {# ── SEARCH MODE: grouped by category ── #}
+        {% if search_title %}
+
+          {# Category count summary bar #}
+          {% if grouped_results is not empty %}
+            <div class="search-cat-summary mb-4">
+              {% for group in grouped_results %}
+                <a href="#cat-group-{{ group.tid }}"
+                   class="search-cat-chip">
+                  {{ group.name }}
+                  <span class="search-cat-chip-count">{{ group.count }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% if grouped_results is empty %}
+            <div class="text-center py-5">
+              <i class="fas fa-search fa-4x text-muted mb-3 d-block opacity-25"></i>
+              <h4 class="text-muted">{{ 'No Results Found'|t }}</h4>
+              <p class="text-muted small">{{ 'Try a different keyword or browse categories.'|t }}</p>
+              <a href="/products" class="btn btn-primary rounded-pill mt-2 px-4">{{ 'Browse All Products'|t }}</a>
+            </div>
+          {% else %}
+            {% for group in grouped_results %}
+              {# Category heading with count badge #}
+              <div class="search-category-group mb-5" id="cat-group-{{ group.tid }}">
+                <div class="d-flex align-items-center mb-3 pb-2 border-bottom">
+                  <h6 class="mb-0 fw-bold text-dark me-2">{{ group.name }}</h6>
+                  <span class="badge bg-primary rounded-pill">{{ group.count }}</span>
+                  <a href="/products?field_category_target_id={{ group.tid }}"
+                     class="ms-auto small text-primary text-decoration-none">
+                    {{ 'View all in'|t }} {{ group.name }} <i class="fas fa-chevron-right fa-xs"></i>
+                  </a>
+                </div>
+                <div class="row g-3">
+                  {% for product in group.products %}
+                    <div class="col-6 col-md-4 col-lg-3">
+                      <a href="{{ product.url }}" class="text-decoration-none">
+                        <div class="search-product-card h-100">
+                          <div class="search-product-img-wrap">
+                            {% if product.img_url %}
+                              <img src="{{ product.img_url }}" alt="{{ product.title }}" loading="lazy">
+                            {% else %}
+                              <div class="no-img"><i class="fas fa-image text-muted"></i></div>
+                            {% endif %}
+                          </div>
+                          <div class="p-2">
+                            <div class="search-product-title">{{ product.title }}</div>
+                            {% if product.price %}
+                              <div class="search-product-price">{{ product.price }}</div>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </a>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          {% endif %}
+
+        {# ── BROWSE MODE: normal grid (no search) ── #}
+        {% else %}
+          {% if rows %}
+            <div id="products-grid-container" class="row g-4">
+              {{ rows }}
+            </div>
+          {% elseif empty %}
+            <div class="text-center py-5">
+              <i class="fas fa-box-open fa-4x text-muted mb-3 d-block"></i>
+              <h4>{{ 'No products found'|t }}</h4>
+              <a href="/products" class="btn btn-primary rounded-pill mt-3">{{ 'View All Products'|t }}</a>
+            </div>
+          {% endif %}
+
+          {% if pager %}
+            <div id="products-pager" class="d-none" aria-hidden="true">{{ pager }}</div>
+            <div id="load-more-sentinel" class="mt-4"></div>
+            <div id="load-more-loader" class="text-center py-4" style="display:none;">
+              <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                <span class="visually-hidden">{{ 'Loading...'|t }}</span>
+              </div>
+              <span class="text-muted small">{{ 'Loading more products...'|t }}</span>
+            </div>
+          {% endif %}
+        {% endif %}
+
+      </div>
+
+    </div>
+  </div>
+</div>

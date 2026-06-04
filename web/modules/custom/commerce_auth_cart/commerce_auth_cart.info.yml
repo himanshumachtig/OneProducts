@@ -1,0 +1,9 @@
+name: 'Commerce Auth Cart'
+description: 'Requires login for all cart and checkout operations. Prevents anonymous cart accumulation and cart data leakage between users.'
+type: module
+package: Custom
+core_version_requirement: ^10 || ^11
+dependencies:
+  - commerce:commerce_cart
+  - commerce:commerce_order
+  - commerce:commerce_checkout

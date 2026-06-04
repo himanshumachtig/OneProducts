@@ -1,0 +1,45 @@
+{#
+/**
+ * Professional review card for product_review comment type.
+ */
+#}
+{% set rating = comment.field_rating.value|default(0)|number_format(0) %}
+{% set author_name = comment.getOwner().getDisplayName() %}
+{% set first_letter = author_name|first|upper %}
+
+<div class="review-card">
+
+  {# ── Header ───────────────────────────────────────────────────────────── #}
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="review-avatar">{{ first_letter }}</div>
+      <div>
+        <div class="fw-semibold" style="font-size:.95rem;">{{ author_name }}</div>
+        <div class="review-meta">{{ comment.getCreatedTime()|date('d M Y') }}</div>
+      </div>
+    </div>
+
+    {# Star display #}
+    <div class="review-stars">
+      {% for i in 1..5 %}
+        {% if i <= rating %}
+          <i class="fa fa-star text-warning"></i>
+        {% else %}
+          <i class="fa fa-star text-muted"></i>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── Subject (hide auto-generated "Order review" default) ────────────── #}
+  {% set subject = comment.subject.value %}
+  {% if subject and subject != 'Order review' %}
+    <div class="review-subject mb-1">{{ subject }}</div>
+  {% endif %}
+
+  {# ── Body ─────────────────────────────────────────────────────────────── #}
+  {% if comment.comment_body.value %}
+    <p class="review-body mb-0">{{ comment.comment_body.value }}</p>
+  {% endif %}
+
+</div>

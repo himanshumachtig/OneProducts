@@ -1,0 +1,60 @@
+/* Wishlist heart button on product cards */
+.wl-card-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  transition: color .2s, border-color .2s, transform .15s;
+  cursor: pointer;
+}
+.wl-card-btn:hover,
+.wl-card-btn.wishlisted {
+  color: #e74c3c;
+  border-color: #e74c3c;
+}
+.wl-card-btn:active { transform: scale(1.2); }
+
+/* Detail page wishlist button active state */
+#product-wishlist-btn.wishlisted {
+  color: #e74c3c;
+  border-color: #e74c3c;
+}
+#product-wishlist-btn.wishlisted i {
+  color: #e74c3c;
+}
+
+/* Wishlist count badge in header */
+.wishlist-count-badge {
+  font-size: 0.65rem;
+}
+
+/* Toast notification */
+.wishlist-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #333;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 24px;
+  font-size: .9rem;
+  opacity: 0;
+  transition: opacity .25s, transform .25s;
+  z-index: 9999;
+  pointer-events: none;
+}
+.wishlist-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

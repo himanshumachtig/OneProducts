@@ -1,0 +1,7 @@
+name: 'AI Domain Chatbot'
+type: module
+description: 'AI chatbot that searches and answers only from configured website domains using Claude API.'
+core_version_requirement: ^10 || ^11
+package: Custom
+dependencies:
+  - drupal:system

@@ -1,0 +1,5 @@
+name: Custom Contact Form
+description: A custom contact form with name, email, and phone fields.
+type: module
+core_version_requirement: ^10 || ^11
+package: Custom

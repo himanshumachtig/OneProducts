@@ -1,0 +1,10 @@
+image-search:
+  version: 1.0
+  css:
+    theme:
+      css/image-search.css: {}
+  js:
+    js/image-search.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

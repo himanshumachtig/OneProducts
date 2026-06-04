@@ -1,0 +1,1382 @@
+<?php
+
+/**
+ * @file
+ * Commerce Theme theme functions.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Markup;
+use Drupal\views\Views;
+use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\query\QueryPluginBase;
+
+/**
+ * Implements hook_theme_suggestions_block_alter().
+ *
+ * Adds a template suggestion based on the block content bundle so Drupal will
+ * look for block--block-content--[bundle].html.twig.
+ * e.g. hero_banner bundle → block--block-content--hero-banner.html.twig
+ */
+function commerce_theme_theme_suggestions_block_alter(array &$suggestions, array $variables) {
+  $plugin_id = $variables['elements']['#plugin_id'] ?? '';
+  if (str_starts_with($plugin_id, 'block_content:')) {
+    $uuid = substr($plugin_id, strlen('block_content:'));
+    $block_content = \Drupal::service('entity.repository')
+      ->loadEntityByUuid('block_content', $uuid);
+    if ($block_content) {
+      // Adds suggestion: block__block_content__[bundle]
+      $suggestions[] = 'block__block_content__' . $block_content->bundle();
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_html().
+ * Adds body classes needed for layout and page-specific CSS selectors.
+ */
+function commerce_theme_preprocess_html(&$variables) {
+  $variables['attributes']['class'][] = 'd-flex';
+  $variables['attributes']['class'][] = 'flex-column';
+  $variables['attributes']['class'][] = 'min-vh-100';
+
+  // Add route-based body class so CSS can target specific pages.
+  // e.g. .page-search, .page-checkout, .page-cart
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if (str_starts_with($route_name, 'search.')) {
+    $variables['attributes']['class'][] = 'page-search';
+  }
+  elseif (str_starts_with($route_name, 'commerce_checkout')) {
+    $variables['attributes']['class'][] = 'page-checkout';
+  }
+  elseif ($route_name === 'commerce_cart.page') {
+    $variables['attributes']['class'][] = 'page-cart';
+  }
+
+  $user_account_routes = [
+    'entity.user.canonical', 'entity.user.edit_form',
+    'view.commerce_user_orders.order_page',
+    'commerce_order.address_book.overview',
+    'entity.commerce_payment_method.collection',
+    'commerce_live_search.order_detail',
+  ];
+  if (in_array($route_name, $user_account_routes)) {
+    $variables['attributes']['class'][] = 'page--user-account';
+  }
+}
+
+/**
+ * Builds the taxonomy-driven mega menu tree.
+ * Returns top-level terms with their children and product counts.
+ * Cache invalidation is handled via #cache['tags'] in preprocess_page.
+ */
+function commerce_theme_get_mega_menu_tree(): array {
+  $term_storage    = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $product_storage = \Drupal::entityTypeManager()->getStorage('commerce_product');
+  $alias_manager   = \Drupal::service('path_alias.manager');
+
+  // Top-level terms only (depth 1 from root).
+  $top_terms = $term_storage->loadTree('product_category', 0, 1, TRUE);
+
+  $tree = [];
+  foreach ($top_terms as $term) {
+    // Load direct children.
+    $child_terms = $term_storage->loadTree('product_category', $term->id(), 1, TRUE);
+
+    $children = [];
+    foreach ($child_terms as $child) {
+      $count = (int) $product_storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('status', 1)
+        ->condition('field_category', $child->id())
+        ->count()
+        ->execute();
+
+      $raw_path  = '/taxonomy/term/' . $child->id();
+      $child_url = $alias_manager->getAliasByPath($raw_path);
+
+      $children[] = [
+        'tid'   => $child->id(),
+        'label' => $child->label(),
+        'url'   => $child_url,
+        'count' => $count,
+      ];
+    }
+
+    $raw_path   = '/taxonomy/term/' . $term->id();
+    $parent_url = $alias_manager->getAliasByPath($raw_path);
+
+    $tree[] = [
+      'tid'          => $term->id(),
+      'label'        => $term->label(),
+      'url'          => $parent_url,
+      'children'     => $children,
+      'has_children' => !empty($children),
+    ];
+  }
+
+  return $tree;
+}
+
+/**
+ * Returns a URL-safe slug from a taxonomy term label.
+ */
+function _commerce_theme_term_slug(string $label): string {
+  return trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $label)), '-');
+}
+
+/**
+ * Creates or updates the path alias for a product_category taxonomy term.
+ * Format: /parent-slug/child-slug for children, /slug for top-level terms.
+ */
+function _commerce_theme_save_term_alias(\Drupal\taxonomy\TermInterface $term): void {
+  $slug    = _commerce_theme_term_slug($term->label());
+  $parents = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadParents($term->id());
+
+  if ($parents) {
+    $parent      = reset($parents);
+    $parent_slug = _commerce_theme_term_slug($parent->label());
+    $alias       = '/' . $parent_slug . '/' . $slug;
+  }
+  else {
+    $alias = '/' . $slug;
+  }
+
+  $system_path  = '/taxonomy/term/' . $term->id();
+  $langcode     = $term->language()->getId();
+  $alias_storage = \Drupal::entityTypeManager()->getStorage('path_alias');
+
+  // Remove any existing aliases for this path so we always have exactly one.
+  $existing = $alias_storage->loadByProperties([
+    'path'     => $system_path,
+    'langcode' => $langcode,
+  ]);
+  foreach ($existing as $old) {
+    $old->delete();
+  }
+
+  $alias_entity = $alias_storage->create([
+    'path'     => $system_path,
+    'alias'    => $alias,
+    'langcode' => $langcode,
+  ]);
+  $alias_entity->save();
+}
+
+/**
+ * Implements hook_taxonomy_term_insert().
+ * Auto-generates a clean path alias when a product_category term is created.
+ */
+function commerce_theme_taxonomy_term_insert(\Drupal\taxonomy\TermInterface $term): void {
+  if ($term->bundle() !== 'product_category') {
+    return;
+  }
+  _commerce_theme_save_term_alias($term);
+}
+
+/**
+ * Implements hook_taxonomy_term_update().
+ * Regenerates the path alias when a product_category term label changes.
+ */
+function commerce_theme_taxonomy_term_update(\Drupal\taxonomy\TermInterface $term): void {
+  if ($term->bundle() !== 'product_category') {
+    return;
+  }
+  _commerce_theme_save_term_alias($term);
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function commerce_theme_preprocess_page(&$variables) {
+  $variables['site_name'] = \Drupal::config('system.site')->get('name');
+  $variables['site_slogan'] = \Drupal::config('system.site')->get('slogan');
+  $variables['logo'] = theme_get_setting('logo.url');
+  $current_user = \Drupal::currentUser();
+  $variables['current_username'] = $current_user->isAuthenticated() ? $current_user->getDisplayName() : '';
+  $variables['account_uid']   = $current_user->isAuthenticated() ? (int) $current_user->id() : 0;
+  $variables['current_route'] = \Drupal::routeMatch()->getRouteName();
+
+  // Render Drupal core search block for the header.
+  $block_manager = \Drupal::service('plugin.manager.block');
+  $search_block = $block_manager->createInstance('search_form_block', []);
+  $search_render = $search_block->build();
+  $variables['search_form'] = \Drupal::service('renderer')->renderInIsolation($search_render);
+
+  // Populate cart count and total for the header cart icon.
+  // Both 'user' and 'cart' contexts are required:
+  // - 'user' ensures the username / login-state shown in the header is never
+  //   shared between different authenticated users (empty-cart users all
+  //   produce the same 'cart' key "", so without 'user' they'd share one
+  //   cached page and see each other's display names).
+  // - 'cart' ensures the count badge and total update as items are added/removed.
+  $variables['#cache']['contexts'][] = 'user';
+  $variables['#cache']['contexts'][] = 'cart';
+  try {
+    $cart_provider = \Drupal::service('commerce_cart.cart_provider');
+    $carts = $cart_provider->getCarts();
+    $cart_count = 0;
+    $cart_total = '$0.00';
+    foreach ($carts as $cart) {
+      foreach ($cart->getItems() as $item) {
+        $cart_count += (int) $item->getQuantity();
+      }
+      $total = $cart->getTotalPrice();
+      if ($total) {
+        $cart_total = '$' . number_format((float) $total->getNumber(), 2);
+      }
+      $variables['#cache']['tags'] = array_merge(
+        $variables['#cache']['tags'] ?? [],
+        $cart->getCacheTags()
+      );
+    }
+    $variables['cart_count'] = $cart_count;
+    $variables['cart_total'] = $cart_total;
+  }
+  catch (\Exception $e) {
+    $variables['cart_count'] = 0;
+    $variables['cart_total'] = '$0.00';
+  }
+
+  // Mega menu tree — taxonomy-driven.
+  // The taxonomy_term_list cache tag ensures the page cache is invalidated
+  // whenever any taxonomy term is created, updated, or deleted.
+  $variables['mega_menu_tree'] = commerce_theme_get_mega_menu_tree();
+  $variables['#cache']['tags'][] = 'taxonomy_term_list';
+  $variables['#attached']['library'][] = 'commerce_theme/mega-menu';
+  $variables['#attached']['library'][] = 'commerce_theme/wishlist';
+
+  // Show a page-header banner only on pages that don't render their own.
+  $route_match = \Drupal::routeMatch();
+  $route_name  = $route_match->getRouteName();
+  // These routes render their own banner inside page.content — skip the generic one.
+  $no_banner_routes = [
+    'entity.commerce_product.canonical',
+    'commerce_cart.page',
+    '<front>',
+  ];
+  $skip = in_array($route_name, $no_banner_routes)
+    || strpos($route_name, 'view.') === 0       // all Views pages
+    || strpos($route_name, 'commerce_checkout') === 0
+    || strpos($route_name, 'user.') === 0       // login / register / password
+    || strpos($route_name, 'entity.user') === 0;// user profile / edit
+
+  if (!$skip && !empty($variables['head_title']['title'])) {
+    $variables['page_banner_title'] = $variables['head_title']['title'];
+  } else {
+    $variables['page_banner_title'] = '';
+  }
+}
+
+/**
+ * Implements hook_preprocess_page__front().
+ * Builds one Views-powered section per top-level product category.
+ */
+function commerce_theme_preprocess_page__front(&$variables) {
+  $term_storage  = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $alias_manager = \Drupal::service('path_alias.manager');
+  $sections      = [];
+
+  foreach ($term_storage->loadTree('product_category', 0, 1, TRUE) as $term) {
+    // Include parent term + all descendants so "Electronics" surfaces "Phones".
+    $descendants = $term_storage->loadTree('product_category', $term->id(), NULL, TRUE);
+    $all_tids    = [$term->id()];
+    foreach ($descendants as $desc) {
+      $all_tids[] = $desc->id();
+    }
+    // Pass TIDs as a '+'-separated string; break_phrase:true in the view handles OR logic.
+    $tid_arg = implode('+', $all_tids);
+
+    // Execute the view to check for results before building the section.
+    $view = Views::getView('homepage_category_products');
+    if (!$view) {
+      continue;
+    }
+    $view->setDisplay('embed_1');
+    $view->setArguments([$tid_arg]);
+    $view->execute();
+    if (empty($view->result)) {
+      continue;
+    }
+
+    $sections[] = [
+      'label'         => $term->label(),
+      'url'           => $alias_manager->getAliasByPath('/taxonomy/term/' . $term->id()),
+      'slug'          => _commerce_theme_term_slug($term->label()),
+      'products_view' => views_embed_view('homepage_category_products', 'embed_1', $tid_arg),
+    ];
+  }
+
+  $variables['category_sections'] = $sections;
+}
+
+/**
+ * Implements hook_preprocess_taxonomy_term().
+ * Loads Commerce products for product_category term pages via Views.
+ */
+function commerce_theme_preprocess_taxonomy_term(&$variables) {
+  /** @var \Drupal\taxonomy\TermInterface $term */
+  $term = $variables['term'];
+  if ($term->bundle() !== 'product_category') {
+    return;
+  }
+
+  // Collect the term itself + all descendants for hierarchy support.
+  $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $descendants  = $term_storage->loadTree('product_category', $term->id(), NULL, TRUE);
+  $all_tids     = [$term->id()];
+  foreach ($descendants as $desc) {
+    $all_tids[] = $desc->id();
+  }
+  $tid_arg = implode('+', $all_tids);
+
+  $variables['category_products_view'] = views_embed_view('homepage_category_products', 'embed_category', $tid_arg);
+  $variables['#attached']['library'][] = 'commerce_theme/quick-view';
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function commerce_theme_preprocess_node(&$variables) {
+  $node = $variables['node'];
+  $variables['bundle'] = $node->bundle();
+
+  // Always resolve the path alias so {{ url }} never shows /node/{id}.
+  // Falls back to /node/{id} only when no alias is configured.
+  $alias = \Drupal::service('path_alias.manager')
+    ->getAliasByPath('/node/' . $node->id(), $node->language()->getId());
+  $variables['url'] = $alias;
+
+  // Pass formatted price to product templates.
+  if ($node->bundle() === 'product' && $node->hasField('field_product_price')) {
+    $price = $node->get('field_product_price')->value;
+    $variables['formatted_price'] = $price ? '$' . number_format((float)$price, 2) : NULL;
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_node_alter().
+ */
+function commerce_theme_theme_suggestions_node_alter(array &$suggestions, array $variables) {
+  $node = $variables['elements']['#node'];
+  $view_mode = $variables['elements']['#view_mode'];
+  // Ensure node--product--teaser and node--product are picked up.
+  $suggestions[] = 'node__' . $node->bundle();
+  $suggestions[] = 'node__' . $node->bundle() . '__' . $view_mode;
+}
+
+/**
+ * Implements hook_theme_suggestions_comment_alter().
+ * Use comment--product-review.html.twig for product_review comment type.
+ */
+function commerce_theme_theme_suggestions_comment_alter(array &$suggestions, array $variables) {
+  $comment = $variables['elements']['#comment'] ?? NULL;
+  if ($comment && $comment->bundle() === 'product_review') {
+    $suggestions[] = 'comment__product_review';
+  }
+  if ($comment && $comment->bundle() === 'product_comment') {
+    $suggestions[] = 'comment__product_comment';
+  }
+}
+
+/**
+ * Implements hook_preprocess_comment() for product_review and product_comment.
+ */
+function commerce_theme_preprocess_comment(&$variables) {
+  $bundle = isset($variables['comment']) ? $variables['comment']->bundle() : '';
+  if (in_array($bundle, ['product_review', 'product_comment'])) {
+    $variables['submitted']    = '';
+    $variables['permalink']    = '';
+    $variables['user_picture'] = '';
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_views_view_alter().
+ */
+function commerce_theme_theme_suggestions_views_view_alter(array &$suggestions, array $variables) {
+  $view = $variables['view'];
+  $suggestions[] = 'views_view__' . $view->id();
+}
+
+/**
+ * Implements hook_theme_suggestions_views_view_unformatted_alter().
+ */
+function commerce_theme_theme_suggestions_views_view_unformatted_alter(array &$suggestions, array $variables) {
+  $view = $variables['view'];
+  $suggestions[] = 'views_view_unformatted__' . $view->id();
+  $suggestions[] = 'views_view_unformatted__' . $view->id() . '__' . $view->current_display;
+}
+
+/**
+ * Implements hook_preprocess_views_view() for product_catalog.
+ * Passes active category filter to template.
+ */
+function commerce_theme_preprocess_views_view__product_catalog(&$variables) {
+  $request = \Drupal::request();
+  $search   = trim($request->query->get('title', ''));
+  $variables['active_category'] = $request->query->get('field_category_target_id', '');
+  $variables['search_title']    = $search;
+  $variables['grouped_results'] = [];
+  $variables['total_rows']      = 0;
+
+  if ($search !== '') {
+    $groups = _commerce_theme_grouped_search($search);
+    $variables['grouped_results'] = $groups;
+    foreach ($groups as $g) {
+      $variables['total_rows'] += $g['count'];
+    }
+  }
+  else {
+    $variables['total_rows'] = $variables['view']->total_rows ?? count($variables['view']->result);
+  }
+
+  $variables['#attached']['library'][] = 'commerce_theme/load-more';
+}
+
+/**
+ * Query products matching $search, grouped by category.
+ * Returns array of ['name', 'tid', 'count', 'products' => [...]] per category.
+ */
+function _commerce_theme_grouped_search(string $search): array {
+  // Normalise: strip hyphens/spaces, strip trailing 's' (plural).
+  $norm    = preg_replace('/[\s\-]+/', '', strtolower($search));
+  $norm    = rtrim($norm, 's');
+  $pattern = '%' . $norm . '%';
+
+  $db = \Drupal::database();
+  $query = $db->select('commerce_product_field_data', 'p');
+  $query->leftJoin('commerce_product__field_category', 'fc', 'fc.entity_id = p.product_id AND fc.deleted = 0');
+  $query->leftJoin('taxonomy_term_field_data', 'tt', 'tt.tid = fc.field_category_target_id');
+  $query->fields('p', ['product_id', 'title']);
+  $query->addField('tt', 'tid',  'cat_tid');
+  $query->addField('tt', 'name', 'cat_name');
+  $query->condition('p.status', 1);
+  // Match on product TITLE OR category NAME — so "shoes" finds all products
+  // in a "Shoes" category even when the product title is "Nike Air Max".
+  $query->where(
+    "REPLACE(REPLACE(LOWER(p.title), '-', ''), ' ', '') LIKE :pat
+     OR REPLACE(REPLACE(LOWER(tt.name), '-', ''), ' ', '') LIKE :pat",
+    [':pat' => $pattern]
+  );
+  $query->orderBy('tt.name');
+  $query->orderBy('p.title');
+
+  $rows = $query->execute()->fetchAll();
+  if (empty($rows)) {
+    return [];
+  }
+
+  // Group product IDs by category.
+  $buckets = [];
+  foreach ($rows as $row) {
+    $tid  = (int) ($row->cat_tid ?? 0);
+    $name = $row->cat_name ?: 'Other';
+    if (!isset($buckets[$tid])) {
+      $buckets[$tid] = ['name' => $name, 'tid' => $tid, 'ids' => []];
+    }
+    $buckets[$tid]['ids'][] = (int) $row->product_id;
+  }
+
+  // Load product entities and build render-ready data.
+  $storage    = \Drupal::entityTypeManager()->getStorage('commerce_product');
+  $fileUrlGen = \Drupal::service('file_url_generator');
+
+  $groups = [];
+  foreach ($buckets as $bucket) {
+    $products = [];
+    foreach (array_unique($bucket['ids']) as $pid) {
+      $product = $storage->load($pid);
+      if (!$product) continue;
+
+      // Price from first variation.
+      $price = NULL;
+      if (!$product->get('variations')->isEmpty()) {
+        $variation = $product->get('variations')->entity;
+        if ($variation && !$variation->get('price')->isEmpty()) {
+          $p = $variation->get('price')->first()->toPrice();
+          $price = '₹' . number_format((float) $p->getNumber(), 2);
+        }
+      }
+
+      // Image URL.
+      $imgUrl = NULL;
+      if (!$product->get('field_product_image')->isEmpty()) {
+        $file = $product->get('field_product_image')->entity;
+        if ($file) {
+          $imgUrl = $fileUrlGen->generateAbsoluteString($file->getFileUri());
+        }
+      }
+
+      $products[] = [
+        'id'      => (int) $product->id(),
+        'title'   => $product->getTitle(),
+        'price'   => $price,
+        'img_url' => $imgUrl,
+        'url'     => $product->toUrl()->toString(),
+      ];
+    }
+    if ($products) {
+      $groups[] = [
+        'name'     => $bucket['name'],
+        'tid'      => $bucket['tid'],
+        'count'    => count($products),
+        'products' => $products,
+      ];
+    }
+  }
+  return $groups;
+}
+
+/**
+ * Implements hook_preprocess_views_view() for product_listing.
+ * Attaches the load-more library to the products listing page.
+ */
+function commerce_theme_preprocess_views_view__product_listing(&$variables) {
+  $variables['#attached']['library'][] = 'commerce_theme/load-more';
+}
+
+/**
+ * Implements hook_preprocess_block().
+ */
+function commerce_theme_preprocess_block(&$variables) {
+  $variables['attributes']['class'][] = 'block';
+
+  // For the hero_banner block content type, load each banner_slide paragraph
+  // and pass their render arrays to the template as hero_slides[].
+  // This lets block--block-content--hero-banner.html.twig build the carousel
+  // without needing to iterate over the raw field render array.
+  $plugin_id = $variables['elements']['#plugin_id'] ?? '';
+  if (str_starts_with($plugin_id, 'block_content:')) {
+    $uuid = substr($plugin_id, strlen('block_content:'));
+    $block_content = \Drupal::service('entity.repository')
+      ->loadEntityByUuid('block_content', $uuid);
+    if ($block_content && $block_content->bundle() === 'popup') {
+      // Attach popup library and extract fields for the template.
+      $variables['#attached']['library'][] = 'commerce_theme/popup';
+
+      if (!$block_content->get('field_popup_image')->isEmpty()) {
+        $image_item = $block_content->get('field_popup_image')->first();
+        $file = $image_item->entity;
+        if ($file) {
+          $variables['popup_image_url'] = \Drupal::service('file_url_generator')
+            ->generateAbsoluteString($file->getFileUri());
+          $variables['popup_image_alt'] = $image_item->alt ?? '';
+        }
+      }
+
+      if (!$block_content->get('field_popup_link')->isEmpty()) {
+        $link_item  = $block_content->get('field_popup_link')->first();
+        $link_url   = $link_item->getUrl();
+        // For internal links resolve path alias; keep external URLs as-is.
+        if (!$link_url->isExternal()) {
+          $internal = '/' . ltrim($link_url->getInternalPath(), '/');
+          $resolved = \Drupal::service('path_alias.manager')->getAliasByPath($internal);
+          $variables['popup_link_url'] = $resolved;
+        }
+        else {
+          $variables['popup_link_url'] = $link_url->toString();
+        }
+        $variables['popup_link_title'] = $link_item->title ?: t('Learn More');
+      }
+    }
+
+    if ($block_content && $block_content->bundle() === 'hero_banner') {
+      $view_builder = \Drupal::entityTypeManager()->getViewBuilder('paragraph');
+      $slides = [];
+      foreach ($block_content->get('field_banner_slides') as $item) {
+        $paragraph = $item->entity;
+        if ($paragraph) {
+          $slides[] = $view_builder->view($paragraph, 'default');
+        }
+      }
+      $variables['hero_slides']      = $slides;
+      $variables['block_content_id'] = $block_content->id();
+      $variables['logged_in']        = \Drupal::currentUser()->isAuthenticated();
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_status_messages().
+ * Passes messages to drupalSettings so JS can show them as toasts.
+ */
+function commerce_theme_preprocess_status_messages(&$variables) {
+  if (empty($variables['message_list'])) {
+    return;
+  }
+  $messages = [];
+  foreach ($variables['message_list'] as $type => $msgs) {
+    foreach ($msgs as $msg) {
+      $messages[] = [
+        'type' => $type,
+        'text' => strip_tags((string) $msg),
+      ];
+    }
+  }
+  if (!empty($messages)) {
+    $variables['#attached']['drupalSettings']['commerceToastMessages'] = $messages;
+  }
+}
+
+/**
+ * Implements hook_preprocess_commerce_product().
+ */
+function commerce_theme_preprocess_commerce_product(&$variables) {
+  // Prevent page caching on product pages so anonymous users always get a
+  // fresh CSRF form token for the add-to-cart form.
+  \Drupal::service('page_cache_kill_switch')->trigger();
+
+  $product = $variables['product_entity'];
+  if (!$product) {
+    return;
+  }
+
+  // Category name — resolved in PHP to avoid Twig sandbox restrictions.
+  $cat_field = $product->get('field_category');
+  if (!$cat_field->isEmpty()) {
+    $cat_entity = $cat_field->entity;
+    $variables['cat_name'] = $cat_entity ? $cat_entity->label() : '';
+  }
+  else {
+    $variables['cat_name'] = '';
+  }
+
+  $variations = $product->getVariations();
+  if (!empty($variations)) {
+    $variation = reset($variations);
+    $variables['price'] = $variation->getPrice();
+    $variables['sku'] = $variation->getSku();
+
+    // list_price (MRP) — field may be empty on non-clothing products.
+    $list_price_field = $variation->get('list_price');
+    if (!$list_price_field->isEmpty()) {
+      $variables['list_price'] = $list_price_field->first()->toPrice();
+    }
+    else {
+      $variables['list_price'] = NULL;
+    }
+
+    // Pre-compute integer discount percentage for templates.
+    if (!empty($variables['list_price']) && !empty($variables['price'])) {
+      $mrp  = (float) $variables['list_price']->getNumber();
+      $sell = (float) $variables['price']->getNumber();
+      $variables['discount'] = ($mrp > $sell) ? (int) round(($mrp - $sell) / $mrp * 100) : 0;
+    }
+    else {
+      $variables['discount'] = 0;
+    }
+  }
+
+  // === Gallery, Color, and Size data ===
+  $file_url_gen = \Drupal::service('file_url_generator');
+
+  // Product-level gallery: start with the main image, then field_product_gallery.
+  $gallery_images = [];
+  $img_field = $product->get('field_product_image');
+  if (!$img_field->isEmpty() && $img_field->entity) {
+    $gallery_images[] = $file_url_gen->generateAbsoluteString($img_field->entity->getFileUri());
+  }
+  if ($product->hasField('field_product_gallery') && !$product->get('field_product_gallery')->isEmpty()) {
+    foreach ($product->get('field_product_gallery') as $img_item) {
+      if ($img_item->entity) {
+        $gallery_images[] = $file_url_gen->generateAbsoluteString($img_item->entity->getFileUri());
+      }
+    }
+  }
+  $variables['gallery_images'] = $gallery_images;
+
+  // ── Determine category context for attribute display ────────────────────
+  // Build full ancestor name list for the product's category term.
+  $cat_term       = !$product->get('field_category')->isEmpty() ? $product->get('field_category')->entity : NULL;
+  $cat_ancestors  = [];
+  if ($cat_term) {
+    $cat_ancestors[] = strtolower($cat_term->getName());
+    $parents = \Drupal::entityTypeManager()->getStorage('taxonomy_term')
+      ->loadAllParents($cat_term->id());
+    foreach ($parents as $p) {
+      $cat_ancestors[] = strtolower($p->getName());
+    }
+  }
+
+  // Map ancestor names → category type and attribute fields.
+  // Order matters: more-specific rules first.
+  $shoe_cats      = ['shoes', 'kids shoes'];
+  $kids_cats      = ['kids'];
+  $storage_cats   = ['phones', 'tablets', 'laptops'];
+  $no_size_cats   = ['electronics', 'phones', 'tablets', 'laptops', 'audio', 'tvs', 'accessories'];
+
+  $is_shoe        = (bool) array_intersect($shoe_cats,    $cat_ancestors);
+  $is_kids        = (bool) array_intersect($kids_cats,    $cat_ancestors);
+  $is_storage     = (bool) array_intersect($storage_cats, $cat_ancestors);
+  $is_no_size     = !$is_shoe && !$is_kids && (bool) array_intersect($no_size_cats, $cat_ancestors);
+
+  // Decide which attribute field(s) to read for the "size" selector.
+  if ($is_shoe) {
+    $size_attr_fields = ['attribute_shoe_size'];
+    $variables['size_selector_label'] = 'SELECT SHOE SIZE';
+    $variables['category_type'] = 'shoes';
+  }
+  elseif ($is_kids && !$is_shoe) {
+    $size_attr_fields = ['attribute_age_group'];
+    $variables['size_selector_label'] = 'SELECT AGE';
+    $variables['category_type'] = 'kids';
+  }
+  elseif ($is_storage) {
+    $size_attr_fields = [];
+    $variables['size_selector_label'] = '';
+    $variables['category_type'] = 'electronics_storage';
+  }
+  elseif ($is_no_size) {
+    $size_attr_fields = [];
+    $variables['size_selector_label'] = '';
+    $variables['category_type'] = 'electronics';
+  }
+  else {
+    // Clothing (mens / womens / general)
+    $size_attr_fields = ['attribute_size', 'field_attribute_size'];
+    $variables['size_selector_label'] = 'SELECT SIZE';
+    $variables['category_type'] = 'clothing';
+  }
+
+  // Per-variation data used both in Twig (color swatches) and JS (image swap).
+  $variation_js_data = [];
+  $color_options     = [];
+  $size_options      = [];
+  $size_seen         = [];
+  $storage_options   = [];
+  $storage_seen      = [];
+
+  foreach ($product->getVariations() as $var) {
+    $vid        = (int) $var->id();
+    $color_label     = '';
+    $color_hex       = '';
+    $color_attr_id   = 0;
+    $size_label      = '';
+    $size_attr_id    = 0;
+    $var_images      = [];
+
+    // Color attribute.
+    foreach (['attribute_color', 'field_attribute_color'] as $color_field_name) {
+      if ($var->hasField($color_field_name) && !$var->get($color_field_name)->isEmpty()) {
+        $color_val = $var->get($color_field_name)->entity;
+        if ($color_val) {
+          $color_label   = $color_val->getName();
+          $color_attr_id = (int) $color_val->id();
+          if ($color_val->hasField('field_color_hex') && !$color_val->get('field_color_hex')->isEmpty()) {
+            $color_hex = $color_val->get('field_color_hex')->value;
+          }
+          if ($color_label && !isset($color_options[$color_label])) {
+            $color_options[$color_label] = [
+              'label'        => $color_label,
+              'hex'          => $color_hex ?: '#cccccc',
+              'attribute_id' => $color_attr_id,
+            ];
+          }
+        }
+        break;
+      }
+    }
+
+    // Category-aware size/number/age attribute.
+    foreach ($size_attr_fields as $size_field_name) {
+      if ($var->hasField($size_field_name) && !$var->get($size_field_name)->isEmpty()) {
+        $size_val = $var->get($size_field_name)->entity;
+        if ($size_val) {
+          $size_label   = $size_val->getName();
+          $size_attr_id = (int) $size_val->id();
+          if ($size_label && !in_array($size_label, $size_seen, TRUE)) {
+            $size_seen[]    = $size_label;
+            $size_options[] = ['label' => $size_label, 'attribute_id' => $size_attr_id];
+          }
+        }
+        break;
+      }
+    }
+
+    // Storage attribute (phones, tablets, laptops).
+    if ($var->hasField('attribute_storage') && !$var->get('attribute_storage')->isEmpty()) {
+      $stor_val = $var->get('attribute_storage')->entity;
+      if ($stor_val) {
+        $stor_label = $stor_val->getName();
+        $stor_id    = (int) $stor_val->id();
+        if ($stor_label && !in_array($stor_label, $storage_seen, TRUE)) {
+          $storage_seen[]    = $stor_label;
+          $storage_options[] = ['label' => $stor_label, 'attribute_id' => $stor_id];
+        }
+      }
+    }
+
+    // Images uploaded directly on this variation.
+    if ($var->hasField('field_variation_images') && !$var->get('field_variation_images')->isEmpty()) {
+      foreach ($var->get('field_variation_images') as $img_item) {
+        if ($img_item->entity) {
+          $var_images[] = $file_url_gen->generateAbsoluteString($img_item->entity->getFileUri());
+        }
+      }
+    }
+
+    $var_price      = NULL;
+    $var_list_price = NULL;
+    $var_discount   = 0;
+    if (!$var->get('price')->isEmpty()) {
+      $p = $var->get('price')->first()->toPrice();
+      $var_price = ['number' => $p->getNumber(), 'currency_code' => $p->getCurrencyCode()];
+    }
+    $list_price_field = $var->get('list_price');
+    if (!$list_price_field->isEmpty()) {
+      $lp = $list_price_field->first()->toPrice();
+      $var_list_price = ['number' => $lp->getNumber(), 'currency_code' => $lp->getCurrencyCode()];
+      if ($var_price) {
+        $mrp  = (float) $lp->getNumber();
+        $sell = (float) $p->getNumber();
+        $var_discount = ($mrp > $sell) ? (int) round(($mrp - $sell) / $mrp * 100) : 0;
+      }
+    }
+
+    // Capture storage label for this variation.
+    $stor_label_cur   = '';
+    $stor_attr_id_cur = 0;
+    if ($var->hasField('attribute_storage') && !$var->get('attribute_storage')->isEmpty()) {
+      $sv = $var->get('attribute_storage')->entity;
+      if ($sv) { $stor_label_cur = $sv->getName(); $stor_attr_id_cur = (int) $sv->id(); }
+    }
+
+    $variation_js_data[$vid] = [
+      'color'          => $color_label,
+      'colorHex'       => $color_hex,
+      'colorAttrId'    => $color_attr_id,
+      'size'           => $size_label,
+      'sizeAttrId'     => $size_attr_id,
+      'storage'        => $stor_label_cur,
+      'storageAttrId'  => $stor_attr_id_cur,
+      'images'      => $var_images,
+      'sku'         => $var->getSku(),
+      'price'       => $var_price,
+      'listPrice'   => $var_list_price,
+      'discount'    => $var_discount,
+      'stock'       => ($var->hasField('field_stock') && $var->get('field_stock')->count() > 0)
+                         ? (int) $var->get('field_stock')->value
+                         : NULL,
+    ];
+  }
+
+  $variables['color_options']   = array_values($color_options);
+  $variables['size_options']    = $size_options;
+  $variables['storage_options'] = $storage_options;
+
+  // Attach all variation data to JS so the gallery/color-swap logic can run
+  // entirely client-side without extra AJAX requests.
+  $variables['#attached']['drupalSettings']['productGallery'] = [
+    'mainImage'      => $gallery_images[0] ?? '',
+    'galleryImages'  => $gallery_images,
+    'variations'     => $variation_js_data,
+    'colorOptions'   => array_values($color_options),
+    'storageOptions' => $storage_options,
+    'categoryType'   => $variables['category_type'] ?? 'clothing',
+  ];
+  $variables['#attached']['library'][] = 'commerce_theme/product-gallery';
+
+  // Render the reviews section (comment list + form) for the Reviews tab.
+  $variables['review_form']      = [];
+  $variables['review_comments']  = [];
+  $variables['can_review']       = FALSE;
+  $variables['already_reviewed'] = FALSE;
+  $variables['avg_rating']       = 0;
+  $variables['review_count']     = 0;
+
+  if ($product->hasField('field_product_reviews')) {
+    // Load and render existing published comments.
+    $comment_storage      = \Drupal::entityTypeManager()->getStorage('comment');
+    $comment_view_builder = \Drupal::entityTypeManager()->getViewBuilder('comment');
+    $comments = $comment_storage->loadThread($product, 'field_product_reviews', 1, 10);
+    $variables['review_comments'] = $comments
+      ? $comment_view_builder->viewMultiple($comments, 'default')
+      : [];
+
+    // Calculate real average rating and count from published comments.
+    $all_comment_ids = $comment_storage->getQuery()
+      ->condition('entity_type', 'commerce_product')
+      ->condition('entity_id', $product->id())
+      ->condition('field_name', 'field_product_reviews')
+      ->condition('status', 1)
+      ->accessCheck(FALSE)
+      ->execute();
+    $variables['review_count'] = count($all_comment_ids);
+    if ($all_comment_ids) {
+      $total = 0;
+      foreach ($comment_storage->loadMultiple($all_comment_ids) as $c) {
+        if ($c->hasField('field_rating') && !$c->get('field_rating')->isEmpty()) {
+          $total += (int) $c->get('field_rating')->value;
+        }
+      }
+      $variables['avg_rating'] = round($total / $variables['review_count'], 1);
+    }
+
+    // Only allow the review form for authenticated users who purchased this product.
+    $account = \Drupal::currentUser();
+    if ($account->isAuthenticated()) {
+      // Check if the user has already reviewed this product.
+      $existing = $comment_storage->getQuery()
+        ->condition('entity_type', 'commerce_product')
+        ->condition('entity_id', $product->id())
+        ->condition('field_name', 'field_product_reviews')
+        ->condition('uid', $account->id())
+        ->condition('status', 1)
+        ->accessCheck(FALSE)
+        ->execute();
+      $variables['already_reviewed'] = !empty($existing);
+
+      if (!$variables['already_reviewed']) {
+        // Check if this user has a completed order containing this product.
+        $order_storage = \Drupal::entityTypeManager()->getStorage('commerce_order');
+        $order_ids = $order_storage->getQuery()
+          ->condition('uid', $account->id())
+          ->condition('state', 'completed')
+          ->accessCheck(FALSE)
+          ->execute();
+
+        if ($order_ids) {
+          foreach ($order_storage->loadMultiple($order_ids) as $order) {
+            foreach ($order->getItems() as $item) {
+              $variation = $item->getPurchasedEntity();
+              if ($variation && $variation->getProduct()->id() == $product->id()) {
+                $variables['can_review'] = TRUE;
+                break 2;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Only build the form for eligible buyers — direct build, no lazy builder.
+    if ($variables['can_review']) {
+      $comment = \Drupal::entityTypeManager()->getStorage('comment')->create([
+        'entity_type' => 'commerce_product',
+        'entity_id'   => $product->id(),
+        'field_name'  => 'field_product_reviews',
+        'comment_type' => 'product_review',
+        'status'      => 1,
+        'pid'         => NULL,
+      ]);
+      $variables['review_form'] = \Drupal::service('entity.form_builder')
+        ->getForm($comment, 'default');
+    }
+  }
+
+  // ── Comments section (open to all logged-in users, no rating required) ───────
+  $variables['product_comments']       = [];
+  $variables['product_comment_form']   = [];
+  $variables['product_comment_count']  = 0;
+
+  if ($product->hasField('field_product_comments')) {
+    $comment_storage      = $comment_storage ?? \Drupal::entityTypeManager()->getStorage('comment');
+    $comment_view_builder = $comment_view_builder ?? \Drupal::entityTypeManager()->getViewBuilder('comment');
+
+    // Load published comments.
+    $pc_ids = $comment_storage->getQuery()
+      ->condition('entity_type', 'commerce_product')
+      ->condition('entity_id', $product->id())
+      ->condition('field_name', 'field_product_comments')
+      ->condition('status', 1)
+      ->sort('created', 'ASC')
+      ->accessCheck(FALSE)
+      ->execute();
+
+    $variables['product_comment_count'] = count($pc_ids);
+    if ($pc_ids) {
+      $pc_list = $comment_storage->loadMultiple($pc_ids);
+      $variables['product_comments'] = $comment_view_builder->viewMultiple($pc_list, 'default');
+    }
+
+    // Comment form for any logged-in user.
+    $account = $account ?? \Drupal::currentUser();
+    if ($account->isAuthenticated()) {
+      $new_comment = $comment_storage->create([
+        'entity_type'  => 'commerce_product',
+        'entity_id'    => $product->id(),
+        'field_name'   => 'field_product_comments',
+        'comment_type' => 'product_comment',
+        'status'       => 1,
+        'pid'          => NULL,
+      ]);
+      $variables['product_comment_form'] = \Drupal::service('entity.form_builder')
+        ->getForm($new_comment, 'default');
+    }
+  }
+
+  $variables['#attached']['library'][] = 'commerce_theme/product-reviews';
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function commerce_theme_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Add Bootstrap classes to all form submit buttons.
+  if (isset($form['actions']['submit'])) {
+    $form['actions']['submit']['#attributes']['class'][] = 'btn';
+    $form['actions']['submit']['#attributes']['class'][] = 'btn-primary';
+  }
+
+  // Style Drupal core search block form.
+  if ($form_id === 'search_block_form') {
+    $form['#attributes']['class'][] = 'd-flex border rounded-pill commerce-search-form';
+    $form['keys']['#attributes']['class'] = ['form-control', 'border-0', 'rounded-pill', 'w-100', 'py-3'];
+    $form['keys']['#attributes']['placeholder'] = t('Search products...');
+    $form['keys']['#title_display'] = 'invisible';
+    $form['actions']['submit']['#attributes']['class'] = ['btn', 'btn-primary', 'rounded-pill', 'py-3', 'px-5'];
+    $form['actions']['submit']['#value'] = t('Search');
+    // Camera / image-search button injected before the submit button.
+    $form['image_search_trigger'] = [
+      '#markup' => Markup::create('<input type="file" id="img-search-file" accept="image/*" style="display:none" aria-hidden="true" tabindex="-1"><button type="button" id="img-search-btn" class="img-search-cam-btn" title="' . t('Search by image') . '" aria-label="' . t('Search by image') . '"><i class="fas fa-camera"></i></button>'),
+      '#weight' => 5,
+    ];
+  }
+
+  // Style add-to-cart form.
+  if (strpos($form_id, 'commerce_order_item_add_to_cart_form') !== FALSE) {
+    if (isset($form['actions']['submit'])) {
+      $form['actions']['submit']['#attributes']['class'] = ['btn', 'btn-success', 'btn-lg', 'w-100', 'mt-3'];
+      $form['actions']['submit']['#value'] = t('Add to Cart');
+    }
+  }
+
+  // Style checkout form.
+  if (strpos($form_id, 'commerce_checkout_flow') !== FALSE) {
+    if (isset($form['actions']['next'])) {
+      $form['actions']['next']['#attributes']['class'][] = 'btn';
+      $form['actions']['next']['#attributes']['class'][] = 'btn-primary';
+    }
+  }
+
+  // Style product general comment form (ID: comment_product_comment_form).
+  if (strpos($form_id, 'comment_product_comment') !== FALSE) {
+    $form['#attributes']['class'][] = 'product-comment-submit-form';
+    if (isset($form['comment_body']['widget'][0]['value'])) {
+      $form['comment_body']['widget'][0]['value']['#attributes']['class'][] = 'form-control';
+      $form['comment_body']['widget'][0]['value']['#attributes']['placeholder'] = t('Share your thoughts, questions, or feedback about this product…');
+      $form['comment_body']['widget'][0]['value']['#rows'] = 3;
+    }
+    if (isset($form['actions']['submit'])) {
+      $form['actions']['submit']['#attributes']['class'] = ['btn', 'btn-primary', 'rounded-pill', 'px-4'];
+      $form['actions']['submit']['#value'] = t('Post Comment');
+    }
+    // Hide preview button and subject
+    if (isset($form['actions']['preview'])) {
+      $form['actions']['preview']['#access'] = FALSE;
+    }
+    if (isset($form['subject'])) {
+      $form['subject']['#access'] = FALSE;
+    }
+  }
+
+  // User edit form: hide picture, language, timezone — keep email + passwords.
+  if ($form_id === 'user_form') {
+    // Remove picture, language, timezone — not needed for basic account settings.
+    foreach (['language', 'timezone', 'user_picture'] as $key) {
+      if (isset($form[$key])) {
+        $form[$key]['#access'] = FALSE;
+      }
+    }
+    // Remove verbose description from current_pass — we show our own hint.
+    if (isset($form['account']['current_pass'])) {
+      $form['account']['current_pass']['#description'] = '';
+      $form['account']['current_pass']['#title'] = t('Current Password');
+      $form['account']['current_pass']['#attributes']['placeholder'] = t('Enter your current password');
+    }
+    // Clean up email description.
+    if (isset($form['account']['mail'])) {
+      $form['account']['mail']['#description'] = '';
+      $form['account']['mail']['#attributes']['placeholder'] = t('your@email.com');
+    }
+    // Clean up new password description.
+    if (isset($form['account']['pass'])) {
+      $form['account']['pass']['#description'] = '';
+    }
+    // Style the save button.
+    if (isset($form['actions']['submit'])) {
+      $form['actions']['submit']['#attributes']['class'] = ['btn', 'btn-primary', 'rounded-pill', 'px-5'];
+      $form['actions']['submit']['#value'] = t('Save Changes');
+    }
+  }
+
+  // Style address book add/edit profile forms.
+  // Form IDs: profile_customer_address-book-edit_form / address-book-add_form
+  $is_address_form = strpos($form_id, 'profile_customer_address-book') !== FALSE
+    || strpos($form_id, 'profile_customer_default') !== FALSE;
+  if ($is_address_form) {
+    $form['#attributes']['class'][] = 'address-book-form';
+    if (isset($form['address'])) {
+      _commerce_theme_style_address_elements($form['address']);
+    }
+    // Style action buttons.
+    if (isset($form['actions']['submit'])) {
+      $form['actions']['submit']['#attributes']['class'] = ['btn', 'btn-primary', 'px-5', 'rounded-pill'];
+      $form['actions']['submit']['#value'] = t('Save Address');
+    }
+    if (isset($form['actions']['delete'])) {
+      $form['actions']['delete']['#attributes']['class'] = ['btn', 'btn-outline-danger', 'px-4', 'rounded-pill', 'ms-2'];
+    }
+  }
+}
+
+/**
+ * Recursively add Bootstrap form-control class to address widget elements.
+ */
+function _commerce_theme_style_address_elements(&$elements) {
+  if (!is_array($elements)) return;
+  foreach ($elements as $key => &$el) {
+    if (is_array($el) && isset($el['#type'])) {
+      if (in_array($el['#type'], ['textfield', 'email', 'tel', 'number', 'password'])) {
+        $el['#attributes']['class'][] = 'form-control';
+      }
+      if (in_array($el['#type'], ['select'])) {
+        $el['#attributes']['class'][] = 'form-select';
+      }
+    }
+    if (is_array($el) && !str_starts_with((string) $key, '#')) {
+      _commerce_theme_style_address_elements($el);
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_commerce_cart_block().
+ */
+function commerce_theme_preprocess_commerce_cart_block(&$variables) {
+  $variables['count'] = $variables['count'] ?? 0;
+}
+
+/**
+ * Implements hook_theme_suggestions_page_alter().
+ */
+function commerce_theme_theme_suggestions_page_alter(array &$suggestions, array $variables) {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+
+  if ($route_name === 'commerce_cart.page') {
+    $suggestions[] = 'page__cart';
+  }
+  if (strpos($route_name, 'commerce_checkout') !== FALSE) {
+    $suggestions[] = 'page__checkout';
+  }
+  if (strpos($route_name, 'search.') === 0) {
+    $suggestions[] = 'page__search';
+  }
+  // All user account pages share one clean account layout template.
+  $user_account_routes = [
+    'entity.user.canonical',
+    'entity.user.edit_form',
+    'view.commerce_user_orders.order_page',
+    'commerce_order.address_book.overview',
+    'commerce_order.address_book.add_form',
+    'commerce_order.address_book.edit_form',
+    'entity.commerce_payment_method.collection',
+    'commerce_live_search.order_detail',
+  ];
+  if (in_array($route_name, $user_account_routes)) {
+    $suggestions[] = 'page__user_account';
+  }
+
+  // Path-alias based suggestions — converts /wishlist → page__wishlist, etc.
+  $current_path = \Drupal::service('path.current')->getPath();
+  $alias = \Drupal::service('path_alias.manager')->getAliasByPath($current_path);
+  $alias_clean = trim($alias, '/');
+  if ($alias_clean) {
+    $suggestions[] = 'page__' . str_replace('/', '__', $alias_clean);
+  }
+}
+
+/**
+ * Implements hook_preprocess_search_result().
+ * Attaches image URL and type to each search result card.
+ * Matches node SKU to Commerce product to retrieve the uploaded image.
+ */
+function commerce_theme_preprocess_search_result(&$variables) {
+  $result = $variables['result'];
+  $img_url = '';
+
+  if (!empty($result['node'])) {
+    $node = $result['node'];
+    $variables['result_type'] = $node->bundle();
+
+    // Try direct image field first (if node has one).
+    if ($node->hasField('field_product_image') && !$node->get('field_product_image')->isEmpty()) {
+      $file = $node->get('field_product_image')->entity;
+      if ($file) {
+        $img_url = \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
+      }
+    }
+
+    // Fall back: match via SKU to the corresponding Commerce product.
+    if (!$img_url && $node->hasField('field_product_sku') && !$node->get('field_product_sku')->isEmpty()) {
+      $sku = $node->get('field_product_sku')->value;
+      $variations = \Drupal::entityTypeManager()
+        ->getStorage('commerce_product_variation')
+        ->loadByProperties(['sku' => $sku]);
+      if ($variations) {
+        $variation = reset($variations);
+        $commerce_product = $variation->getProduct();
+        if ($commerce_product && $commerce_product->hasField('field_product_image')
+            && !$commerce_product->get('field_product_image')->isEmpty()) {
+          $file = $commerce_product->get('field_product_image')->entity;
+          if ($file) {
+            $img_url = \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
+          }
+        }
+      }
+    }
+
+    // Final fallback: match by title.
+    if (!$img_url) {
+      $commerce_products = \Drupal::entityTypeManager()
+        ->getStorage('commerce_product')
+        ->loadByProperties(['title' => $node->getTitle()]);
+      if (!$commerce_products) {
+        // Partial title match — load all and find closest.
+        $all = \Drupal::entityTypeManager()->getStorage('commerce_product')->loadMultiple();
+        foreach ($all as $cp) {
+          if (stripos($cp->getTitle(), explode(' ', $node->getTitle())[0]) !== FALSE) {
+            $commerce_products = [$cp->id() => $cp];
+            break;
+          }
+        }
+      }
+      if ($commerce_products) {
+        $cp = reset($commerce_products);
+        if ($cp->hasField('field_product_image') && !$cp->get('field_product_image')->isEmpty()) {
+          $file = $cp->get('field_product_image')->entity;
+          if ($file) {
+            $img_url = \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
+          }
+        }
+      }
+    }
+  }
+
+  $variables['result_image'] = $img_url;
+}
+
+/**
+ * Implements hook_preprocess_views_view_table() for the My Orders table.
+ * Adds a "View" link column to each order row without relying on Views tokens.
+ */
+function commerce_theme_preprocess_views_view_table(&$variables) {
+  /** @var \Drupal\views\ViewExecutable $view */
+  $view = $variables['view'];
+  if ($view->id() !== 'commerce_user_orders') {
+    return;
+  }
+
+  // Add an empty header for the action column.
+  $variables['header']['view_link'] = [
+    'content'         => '',
+    'attributes'      => new \Drupal\Core\Template\Attribute(),
+    'default_classes' => FALSE,
+    'responsive'      => '',
+    'specifier'       => '',
+    'sort_order'      => '',
+    'title'           => '',
+  ];
+
+  foreach ($variables['rows'] as $index => &$row) {
+    $result_row = $view->result[$index] ?? NULL;
+    if (!$result_row) {
+      continue;
+    }
+    /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
+    $order = $result_row->_entity ?? NULL;
+    $order_id = $order ? $order->id() : NULL;
+
+    $link_html = $order_id
+      ? '<a href="/orders/' . $order_id . '" class="btn btn-sm btn-outline-primary rounded-pill px-3">'
+        . '<i class="fas fa-eye me-1"></i>View</a>'
+      : '';
+
+    $row['columns']['view_link'] = [
+      'content' => [[
+        'field_output' => ['#markup' => $link_html],
+        'separator'    => '',
+      ]],
+      'attributes'      => new \Drupal\Core\Template\Attribute(['class' => ['text-end']]),
+      'default_classes' => FALSE,
+      'responsive'      => '',
+    ];
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function commerce_theme_theme($existing, $type, $theme, $path) {
+  return [
+    'order_detail_page' => [
+      'variables' => [
+        'order'             => NULL,
+        'items'             => [],
+        'billing'           => [],
+        'timeline'          => [],
+        'payment_status'    => '',
+        'payment_label'     => '',
+        'payment_gateway'   => '',
+        'delivery_status'   => '',
+        'delivery_label'    => '',
+        'admin_notes'             => '',
+        'expected_delivery_date'  => '',
+        'refund_status'     => 'none',
+        'refund_request'    => '',
+        'refund_notes'      => '',
+        'can_cancel'        => FALSE,
+        'can_refund'        => FALSE,
+        'can_rate'          => FALSE,
+        'total'             => '',
+        'total_paid'        => '',
+        'placed_date'       => '',
+        'order_state'       => '',
+        'order_state_label' => '',
+      ],
+      'template' => 'order-detail-page',
+      'path'     => $path . '/templates/commerce',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_views_query_alter().
+ *
+ * Normalises the product title search so that "tshirt", "t-shirt", and
+ * "t shirt" all match products named "T-Shirt" or "T Shirt".
+ * Works by stripping hyphens and spaces from both sides of the LIKE
+ * comparison at the database level.
+ */
+function commerce_theme_views_query_alter(ViewExecutable $view, QueryPluginBase $query) {
+  if ($view->id() !== 'product_catalog') {
+    return;
+  }
+  $title_input = $view->exposed_raw_input['title'] ?? '';
+  if ($title_input === '' || $title_input === NULL) {
+    return;
+  }
+
+  // Normalise search term: lower-case, strip hyphens/spaces, strip trailing 's'.
+  // "tshirt" / "t-shirt" / "T-Shirts" / "Tshirts" all become "tshirt".
+  $normalised = preg_replace('/[\s\-]+/', '', strtolower(trim($title_input)));
+  $normalised = rtrim($normalised, 's');   // "tshirts" → "tshirt"
+
+  // The DB column is also stripped of hyphens/spaces so "T-Shirt" → "tshirt".
+  // No need to strip trailing 's' from the column — the search pattern handles it.
+  $pattern = '%' . $normalised . '%';
+
+  foreach ($query->where as &$group) {
+    foreach ($group['conditions'] as &$cond) {
+      if (!isset($cond['field'])) {
+        continue;
+      }
+      if (strpos((string) $cond['field'], '.title') !== FALSE) {
+        $cond['field']    = "REPLACE(REPLACE(LOWER(commerce_product_field_data.title), '-', ''), ' ', '')";
+        $cond['value']    = $pattern;
+        $cond['operator'] = 'LIKE';
+      }
+    }
+  }
+}

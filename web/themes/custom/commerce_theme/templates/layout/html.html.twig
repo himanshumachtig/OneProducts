@@ -1,0 +1,39 @@
+{#
+/**
+ * @file html.html.twig
+ * Drupal 11 HTML document wrapper.
+ *
+ * Outputs the full HTML page skeleton — everything outside <body> lives here.
+ * page.html.twig renders the visible content placed into {{ page }}.
+ *
+ * Variables available here:
+ *   - html_attributes    : Attributes for the <html> element.
+ *   - body_attributes    : Attributes for the <body> element.
+ *   - head_title         : Array of title parts joined with a separator.
+ *   - placeholder_token  : Unique token used by head/css/js placeholders.
+ *   - page_top           : Hidden admin markup rendered before the page.
+ *   - page               : The rendered page (page.html.twig output).
+ *   - page_bottom        : Hidden admin markup rendered after the page.
+ */
+#}
+<!DOCTYPE html>
+<html{{ html_attributes }}>
+<head>
+  <head-placeholder token="{{ placeholder_token }}">
+  <title>{{ head_title|safe_join(' | ') }}</title>
+  <css-placeholder token="{{ placeholder_token }}">
+  <js-placeholder token="{{ placeholder_token }}">
+</head>
+<body{{ body_attributes }}>
+
+  {#
+    page_top / page_bottom hold Drupal admin overlays (toolbar, contextual links).
+    They must stay outside <main> so they don't affect layout.
+  #}
+  {{ page_top }}
+  {{ page }}
+  {{ page_bottom }}
+
+  <js-bottom-placeholder token="{{ placeholder_token }}">
+</body>
+</html>

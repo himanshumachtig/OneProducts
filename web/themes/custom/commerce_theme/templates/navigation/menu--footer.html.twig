@@ -1,0 +1,30 @@
+{#
+/**
+ * @file navigation/menu--footer.html.twig
+ * Footer navigation — renders three equal columns inside the footer row.
+ *
+ * The parent template (site-footer.html.twig) wraps this output in:
+ *   <div class="col-md-6 col-lg-6 col-xl-9"><div class="row g-4">…</div></div>
+ *
+ * Each top-level menu item becomes one Bootstrap column.
+ * Its children become the list of links inside that column.
+ *
+ * Configure via Admin → Structure → Menus → Footer.
+ */
+#}
+
+{% for item in items %}
+  <div class="col-md-6 col-lg-3">
+    <div class="footer-item d-flex flex-column">
+      <h4 class="text-primary mb-4">{{ item.title }}</h4>
+      {% if item.below %}
+        {% for child in item.below %}
+          <a href="{{ child.url }}"
+             class="{{ child.in_active_trail ? 'active' : '' }}">
+            <i class="fas fa-angle-right me-2"></i>{{ child.title }}
+          </a>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}

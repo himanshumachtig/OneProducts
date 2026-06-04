@@ -1,0 +1,230 @@
+<?php
+
+/**
+ * @file
+ * Commerce Live Search module hooks.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_views_query_alter().
+ *
+ * Expands the "title" exposed filter on the commerce_products view to also
+ * match body, tagline, SKU, and category — so searching "wireless" or "Apple"
+ * returns products regardless of which field contains the keyword.
+ */
+function commerce_live_search_views_query_alter(\Drupal\views\ViewExecutable $view, \Drupal\views\Plugin\views\query\QueryPluginBase $query) {
+  // The /products page is served by product_catalog (or product_listing).
+  $product_views = ['product_catalog', 'product_listing', 'commerce_products'];
+  if (!in_array($view->id(), $product_views, TRUE)) {
+    return;
+  }
+
+  $exposed = $view->getExposedInput();
+  $search  = trim($exposed['title'] ?? '');
+  // Fallback: read directly from the HTTP request.
+  if ($search === '') {
+    $search = trim(\Drupal::request()->query->get('title', ''));
+  }
+
+  if ($search === '') {
+    return;
+  }
+
+  // Remove the Views-generated title LIKE condition so we can replace it
+  // with a broader OR across multiple fields.
+  foreach ($query->where as &$group) {
+    foreach ($group['conditions'] as $key => $condition) {
+      $field = $condition['field'] ?? '';
+      if (is_string($field) && strpos($field, '.title') !== FALSE) {
+        unset($group['conditions'][$key]);
+      }
+    }
+  }
+  unset($group);
+
+  // Subquery: find product IDs matching the search term in any relevant field.
+  $db   = \Drupal::database();
+  $like = '%' . $db->escapeLike($search) . '%';
+
+  $sub = $db->select('commerce_product_field_data', 'sp')
+    ->distinct()
+    ->fields('sp', ['product_id'])
+    ->condition('sp.status', 1);
+
+  $sub->leftJoin('commerce_product__body', 'spb',
+    'spb.entity_id = sp.product_id AND spb.deleted = 0');
+  $sub->leftJoin('commerce_product__field_tagline', 'sptl',
+    'sptl.entity_id = sp.product_id AND sptl.deleted = 0');
+  $sub->leftJoin('commerce_product__variations', 'spvar',
+    'spvar.entity_id = sp.product_id AND spvar.deleted = 0');
+  $sub->leftJoin('commerce_product_variation_field_data', 'spvd',
+    'spvd.variation_id = spvar.variations_target_id AND spvd.status = 1');
+  $sub->leftJoin('commerce_product__field_category', 'spfc',
+    'spfc.entity_id = sp.product_id AND spfc.deleted = 0');
+  $sub->leftJoin('taxonomy_term_field_data', 'sptt',
+    'sptt.tid = spfc.field_category_target_id');
+
+  $or = $sub->orConditionGroup()
+    ->condition('sp.title',               $like, 'LIKE')
+    ->condition('spb.body_value',          $like, 'LIKE')
+    ->condition('spb.body_summary',        $like, 'LIKE')
+    ->condition('sptl.field_tagline_value', $like, 'LIKE')
+    ->condition('spvd.sku',               $like, 'LIKE')
+    ->condition('sptt.name',              $like, 'LIKE');
+
+  $sub->condition($or);
+  $ids = $sub->execute()->fetchCol();
+
+  if (empty($ids)) {
+    $query->addWhereExpression(0, '1 = 0');
+  }
+  else {
+    $id_list = implode(',', array_map('intval', $ids));
+    $query->addWhereExpression(0, "commerce_product_field_data.product_id IN ($id_list)");
+  }
+}
+
+/**
+ * Implements hook_preprocess_views_view_table().
+ *
+ * Injects refund status badge directly from entity into admin orders list.
+ */
+function commerce_live_search_preprocess_views_view_table(&$variables) {
+  $view = $variables['view'];
+  if ($view->id() !== 'commerce_orders') {
+    return;
+  }
+
+  $refund_labels = [
+    'requested' => ['label' => 'Refund Requested', 'bg' => '#fff3cd', 'color' => '#856404', 'border' => '#ffc107'],
+    'approved'  => ['label' => 'Refund Approved',  'bg' => '#d1e7dd', 'color' => '#0f5132', 'border' => '#198754'],
+    'rejected'  => ['label' => 'Refund Rejected',  'bg' => '#f8d7da', 'color' => '#842029', 'border' => '#dc3545'],
+  ];
+
+  // Build refund badge for each row, then reorder: Refund 2nd last, Operations last.
+  foreach ($variables['rows'] as $index => &$row) {
+    $order         = $view->result[$index]->_entity ?? NULL;
+    $refund_status = '';
+    $badge_html    = '';
+
+    if ($order && $order->hasField('field_refund_status')) {
+      $refund_status = $order->get('field_refund_status')->value ?? '';
+    }
+
+    if ($refund_status && isset($refund_labels[$refund_status])) {
+      $info = $refund_labels[$refund_status];
+      $badge_html = '<span style="display:inline-block;padding:4px 10px;border-radius:12px;'
+        . 'background:' . $info['bg'] . ';color:' . $info['color'] . ';'
+        . 'border:1px solid ' . $info['border'] . ';font-size:12px;font-weight:600;">'
+        . htmlspecialchars($info['label'], ENT_QUOTES, 'UTF-8')
+        . '</span>';
+    }
+
+    $refund_col = [
+      'content'         => [['field_output' => ['#markup' => $badge_html], 'separator' => '']],
+      'attributes'      => new \Drupal\Core\Template\Attribute(),
+      'default_classes' => TRUE,
+    ];
+
+    // Rebuild column order: remove operations, append refund_badge, re-append operations.
+    $operations = $row['columns']['operations'] ?? NULL;
+    unset($row['columns']['operations']);
+    $row['columns']['refund_badge'] = $refund_col;
+    if ($operations !== NULL) {
+      $row['columns']['operations'] = $operations;
+    }
+  }
+
+  // Reorder header the same way: refund before operations.
+  $op_header = $variables['header']['operations'] ?? NULL;
+  unset($variables['header']['operations']);
+  $variables['header']['refund_badge'] = [
+    'content'    => t('Refund'),
+    'attributes' => new \Drupal\Core\Template\Attribute(['class' => ['views-field']]),
+  ];
+  if ($op_header !== NULL) {
+    $variables['header']['operations'] = $op_header;
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Adds a refund/cancel notification banner on the admin order edit form
+ * so admins can immediately see orders that need attention.
+ */
+function commerce_live_search_form_alter(array &$form, FormStateInterface $form_state, string $form_id) {
+  // Target commerce order edit forms only.
+  if (!str_starts_with($form_id, 'commerce_order_')) {
+    return;
+  }
+
+  $form_object = $form_state->getFormObject();
+  if (!($form_object instanceof \Drupal\Core\Entity\EntityFormInterface)) {
+    return;
+  }
+
+  $entity = $form_object->getEntity();
+  if ($entity->getEntityTypeId() !== 'commerce_order') {
+    return;
+  }
+
+  $refund_status   = $entity->hasField('field_refund_status')
+    ? ($entity->get('field_refund_status')->value ?? 'none')
+    : 'none';
+  $refund_request  = $entity->hasField('field_refund_request')
+    ? ($entity->get('field_refund_request')->value ?? '')
+    : '';
+  $delivery_status = $entity->hasField('field_delivery_status')
+    ? ($entity->get('field_delivery_status')->value ?? 'pending')
+    : 'pending';
+
+  $notices = [];
+
+  // Refund requested notification.
+  if ($refund_status === 'requested') {
+    $msg = '<strong>Refund Requested</strong> — Customer has submitted a refund request.';
+    if ($refund_request) {
+      $msg .= '<br><em>Reason: ' . htmlspecialchars($refund_request, ENT_QUOTES, 'UTF-8') . '</em>';
+    }
+    $msg .= '<br><small>Scroll down to <strong>Refund Status</strong> field to approve or reject.</small>';
+    $notices[] = [
+      'bg'      => '#fff3cd',
+      'border'  => '#ffc107',
+      'icon'    => '💬',
+      'message' => $msg,
+    ];
+  }
+
+  // Cancel requested notification.
+  if ($delivery_status === 'cancelled') {
+    $notices[] = [
+      'bg'      => '#f8d7da',
+      'border'  => '#dc3545',
+      'icon'    => '🚫',
+      'message' => '<strong>Order Cancelled</strong> — This order was cancelled by the customer.',
+    ];
+  }
+
+  if (empty($notices)) {
+    return;
+  }
+
+  // Build inline notice HTML.
+  $html = '<div style="margin-bottom:16px;">';
+  foreach ($notices as $n) {
+    $html .= '<div style="background:' . $n['bg'] . ';border-left:4px solid ' . $n['border'] . ';'
+           . 'padding:14px 18px;border-radius:6px;margin-bottom:10px;line-height:1.6;">'
+           . $n['icon'] . ' ' . $n['message']
+           . '</div>';
+  }
+  $html .= '</div>';
+
+  $form['order_notice'] = [
+    '#type'   => 'markup',
+    '#markup' => $html,
+    '#weight' => -100,
+  ];
+}

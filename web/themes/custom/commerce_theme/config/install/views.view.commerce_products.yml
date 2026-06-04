@@ -1,0 +1,87 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.commerce_product.teaser
+  module:
+    - commerce_product
+    - user
+id: commerce_products
+label: 'Product Catalog'
+module: views
+description: 'Displays the product catalog on the shop page.'
+tag: ''
+base_table: commerce_product_field_data
+base_field: product_id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Product Catalog'
+      pager:
+        type: mini
+        options:
+          items_per_page: 12
+          offset: 0
+          id: 0
+          total_pages: null
+          expose:
+            items_per_page: false
+            items_per_page_label: 'Items per page'
+            items_per_page_options: '5, 10, 25, 50'
+            items_per_page_options_all: false
+            items_per_page_options_all_label: '- All -'
+            offset: false
+            offset_label: Offset
+          tags:
+            previous: ‹
+            next: ›
+      access:
+        type: perm
+        options:
+          perm: 'access content'
+      cache:
+        type: tag
+        options: {  }
+      query:
+        type: views_query
+        options:
+          disable_sql_rewrite: false
+          distinct: false
+          replica: false
+          query_comment: ''
+          query_tags: {  }
+      row:
+        type: entity:commerce_product
+        options:
+          relationship: none
+          view_mode: teaser
+      fields: {  }
+      sorts: {  }
+      filters:
+        status:
+          id: status
+          table: commerce_product_field_data
+          field: status
+          relationship: none
+          value: '1'
+          plugin_id: boolean
+  page_1:
+    id: page_1
+    display_title: 'Shop Page'
+    display_plugin: page
+    position: 1
+    display_options:
+      path: products
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url
+        - 'user.permissions'
+      tags: {  }

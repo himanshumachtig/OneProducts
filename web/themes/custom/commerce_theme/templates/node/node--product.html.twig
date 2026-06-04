@@ -1,0 +1,228 @@
+{#
+/**
+ * @file
+ * Product full detail page — maps to single.html from Electro template.
+ *
+ * Variables:
+ * - node: The product node entity.
+ * - label: Product title.
+ * - url: Canonical URL.
+ * - content: All rendered fields.
+ * - logged_in: TRUE if the user is logged in.
+ */
+#}
+{%
+  set badge_colors = {
+    'new':      'bg-primary',
+    'sale':     'bg-danger',
+    'hot':      'bg-warning text-dark',
+    'featured': 'bg-success',
+  }
+%}
+{% set badge_val = node.field_product_badge.value %}
+{% set category  = node.field_product_category.entity %}
+
+{# Page breadcrumb header #}
+<div class="container-fluid page-header py-5">
+  <h1 class="text-center text-white display-6 wow fadeInUp" data-wow-delay="0.1s">
+    {{ label }}
+  </h1>
+  <ol class="breadcrumb justify-content-center mb-0 wow fadeInUp" data-wow-delay="0.3s">
+    <li class="breadcrumb-item"><a href="{{ path('<front>') }}">{{ 'Home'|t }}</a></li>
+    <li class="breadcrumb-item">
+      <a href="{{ path('view.product_catalog.page_shop') }}">{{ 'Shop'|t }}</a>
+    </li>
+    {% if category %}
+      <li class="breadcrumb-item">
+        <a href="{{ path('view.product_catalog.page_shop', {}, {'query': {'field_category_target_id': category.id}}) }}">
+          {{ category.label }}
+        </a>
+      </li>
+    {% endif %}
+    <li class="breadcrumb-item active text-white">{{ label }}</li>
+  </ol>
+</div>
+
+{# Product detail section #}
+<div class="container-fluid py-5">
+  <div class="container py-5">
+    <article{{ attributes }}>
+      <div class="row g-5 mb-5">
+
+        {# ── Left: Images ── #}
+        <div class="col-lg-6 wow fadeInUp" data-wow-delay="0.1s">
+          <div class="border rounded position-relative overflow-hidden">
+            {% if badge_val %}
+              <span class="position-absolute top-0 start-0 m-3 badge rounded-pill {{ badge_colors[badge_val] ?? 'bg-secondary' }} fs-6">
+                {{ node.field_product_badge.value|capitalize }}
+              </span>
+            {% endif %}
+            {% if content.field_product_image %}
+              {{ content.field_product_image }}
+            {% else %}
+              <img src="{{ base_path ~ directory }}/images/product-1.png"
+                class="img-fluid w-100" alt="{{ label }}">
+            {% endif %}
+          </div>
+        </div>
+
+        {# ── Right: Info + actions ── #}
+        <div class="col-lg-6 wow fadeInUp" data-wow-delay="0.3s">
+          <div class="ps-lg-4">
+
+            {# Category pill #}
+            {% if category %}
+              <small class="text-muted text-uppercase fw-bold letter-spacing-3">
+                {{ category.label }}
+              </small>
+            {% endif %}
+
+            {# Title #}
+            <h1 class="display-5 mb-3 mt-2">{{ label }}</h1>
+
+            {# Tagline #}
+            {% if node.field_product_tagline.value %}
+              <p class="text-muted mb-3">{{ node.field_product_tagline.value }}</p>
+            {% endif %}
+
+            {# Stars #}
+            <div class="d-flex align-items-center mb-3">
+              <div class="d-flex text-secondary me-3">
+                <i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i>
+                <i class="fa fa-star"></i><i class="fa fa-star text-muted"></i>
+              </div>
+              <small class="text-muted">(12 {{ 'reviews'|t }})</small>
+            </div>
+
+            {# Price #}
+            {% if node.field_product_price.value %}
+              <div class="mb-4">
+                <h2 class="text-primary fw-bold">
+                  ${{ node.field_product_price.value|number_format(2) }}
+                </h2>
+              </div>
+            {% endif %}
+
+            {# Short description #}
+            {% if content.body %}
+              <div class="mb-4 border-top border-bottom py-3">
+                {{ content.body }}
+              </div>
+            {% endif %}
+
+            {# SKU #}
+            {% if node.field_product_sku.value %}
+              <p class="text-muted mb-4">
+                <strong>{{ 'SKU:'|t }}</strong>
+                <span class="font-monospace">{{ node.field_product_sku.value }}</span>
+              </p>
+            {% endif %}
+
+            {# Quantity + Add to Cart #}
+            <div class="row g-3 mb-4">
+              <div class="col-auto">
+                <div class="input-group" style="width: 130px;">
+                  <button class="btn btn-outline-secondary btn-minus" type="button">
+                    <i class="fa fa-minus"></i>
+                  </button>
+                  <input type="text" class="form-control text-center qty-input" value="1" min="1">
+                  <button class="btn btn-outline-secondary btn-plus" type="button">
+                    <i class="fa fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="col">
+                <a href="{{ path('commerce_cart.page') }}"
+                  class="btn btn-primary rounded-pill w-100 py-2">
+                  <i class="fas fa-shopping-cart me-2"></i>{{ 'Add to Cart'|t }}
+                </a>
+              </div>
+            </div>
+
+            {# Wishlist + Share #}
+            <div class="d-flex gap-2">
+              <a href="#" class="btn btn-outline-secondary rounded-pill px-4">
+                <i class="fas fa-heart me-2"></i>{{ 'Wishlist'|t }}
+              </a>
+              <a href="#" class="btn btn-outline-secondary rounded-pill px-4">
+                <i class="fas fa-share-alt me-2"></i>{{ 'Share'|t }}
+              </a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {# ── Tabs: Description / Specifications / Reviews ── #}
+      <div class="row g-4">
+        <div class="col-12">
+          <nav>
+            <div class="nav nav-tabs mb-3" role="tablist">
+              <button class="nav-link active border-white border-bottom-0 fw-bold" type="button"
+                data-bs-toggle="tab" data-bs-target="#tab-desc" role="tab">
+                {{ 'Description'|t }}
+              </button>
+              <button class="nav-link border-white border-bottom-0" type="button"
+                data-bs-toggle="tab" data-bs-target="#tab-specs" role="tab">
+                {{ 'Specifications'|t }}
+              </button>
+              <button class="nav-link border-white border-bottom-0" type="button"
+                data-bs-toggle="tab" data-bs-target="#tab-reviews" role="tab">
+                {{ 'Reviews (12)'|t }}
+              </button>
+            </div>
+          </nav>
+          <div class="tab-content">
+
+            <div class="tab-pane fade show active p-4 border rounded" id="tab-desc">
+              {% if content.body %}
+                {{ content.body }}
+              {% else %}
+                <p class="text-muted">{{ 'No description provided.'|t }}</p>
+              {% endif %}
+            </div>
+
+            <div class="tab-pane fade p-4 border rounded" id="tab-specs">
+              <table class="table table-bordered">
+                <tbody>
+                  {% if node.field_product_sku.value %}
+                    <tr>
+                      <th class="bg-light" style="width: 200px;">{{ 'SKU'|t }}</th>
+                      <td class="font-monospace">{{ node.field_product_sku.value }}</td>
+                    </tr>
+                  {% endif %}
+                  {% if category %}
+                    <tr>
+                      <th class="bg-light">{{ 'Category'|t }}</th>
+                      <td>{{ category.label }}</td>
+                    </tr>
+                  {% endif %}
+                  {% if node.field_product_price.value %}
+                    <tr>
+                      <th class="bg-light">{{ 'Price'|t }}</th>
+                      <td class="fw-bold text-primary">${{ node.field_product_price.value|number_format(2) }}</td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="tab-pane fade p-4 border rounded" id="tab-reviews">
+              <div class="d-flex align-items-center mb-4">
+                <i class="fa fa-star text-secondary fa-2x me-2"></i>
+                <i class="fa fa-star text-secondary fa-2x me-2"></i>
+                <i class="fa fa-star text-secondary fa-2x me-2"></i>
+                <i class="fa fa-star text-secondary fa-2x me-2"></i>
+                <i class="fa fa-star fa-2x me-3 text-muted"></i>
+                <h4 class="mb-0">4.0 / 5.0</h4>
+              </div>
+              <p class="text-muted">{{ 'Customer reviews will appear here once the review module is enabled.'|t }}</p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </article>
+  </div>
+</div>

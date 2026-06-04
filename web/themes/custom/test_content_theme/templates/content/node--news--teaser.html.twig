@@ -1,0 +1,36 @@
+{#
+  Template for News content type - teaser/listing view.
+#}
+<article{{ attributes.addClass('news-card') }}>
+
+  {% if content.field_news_image %}
+    <div class="news-card__image">
+      <a href="{{ url }}">{{ content.field_news_image }}</a>
+    </div>
+  {% endif %}
+
+  <div class="news-card__body">
+
+    {{ title_prefix }}
+    <h2{{ title_attributes.addClass('news-card__title') }}>
+      <a href="{{ url }}" rel="bookmark">{{ label }}</a>
+    </h2>
+    {{ title_suffix }}
+
+    {% if display_submitted %}
+      <div class="news-card__meta">
+        {{ 'By'|t }} {{ author_name }} &mdash; {{ date }}
+      </div>
+    {% endif %}
+
+    {% if content.body %}
+      <div class="news-card__summary">
+        {{ content.body }}
+      </div>
+    {% endif %}
+
+    <a class="news-card__read-more" href="{{ url }}">{{ 'Read more'|t }}</a>
+
+  </div>
+
+</article>

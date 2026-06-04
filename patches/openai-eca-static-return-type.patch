@@ -1,0 +1,13 @@
+diff --git a/modules/openai_eca/src/Plugin/Action/OpenAIActionBase.php b/modules/openai_eca/src/Plugin/Action/OpenAIActionBase.php
+index 1111111..2222222 100644
+--- a/modules/openai_eca/src/Plugin/Action/OpenAIActionBase.php
++++ b/modules/openai_eca/src/Plugin/Action/OpenAIActionBase.php
+@@ -22,7 +22,7 @@ abstract class OpenAIActionBase extends ConfigurableActionBase {
+   /**
+    * {@inheritdoc}
+    */
+-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): ActionBase {
++  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
+     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
+     $instance->api = $container->get('openai.api');
+     return $instance;

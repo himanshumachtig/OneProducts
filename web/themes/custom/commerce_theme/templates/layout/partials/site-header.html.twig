@@ -1,0 +1,180 @@
+{#
+/**
+ * @file partials/site-header.html.twig
+ *
+ * Header sections:
+ *   1. Topbar       — utility links, phone, login (desktop only).
+ *   2. Branding     — logo, search, cart (desktop only).
+ *   3. Static Nav   — Drupal Main Navigation: Home, About, Blog, etc. (desktop only).
+ *                     Manage at: Admin → Structure → Menus → Main navigation.
+ *   4. Category Nav — Taxonomy categories: Men, Electronics, Kids, etc.
+ *                     Manage at: Admin → Structure → Taxonomy → Product Category.
+ *                     On mobile both menus collapse under one hamburger.
+ */
+#}
+
+{# ══════════════════════════════════════════════════════════════════
+   1. TOPBAR — utility strip, desktop only
+   ══════════════════════════════════════════════════════════════════ #}
+<div id="site-topbar" class="container-fluid px-5 border-bottom d-none d-lg-flex align-items-center" style="height:45px;">
+
+  <div class="col-lg-4 text-start">
+    <a href="/contact" class="text-muted me-2 small">{{ 'Help'|t }}</a>
+    <small class="text-muted">/</small>
+    <a href="/contact" class="text-muted mx-2 small">{{ 'Support'|t }}</a>
+    <small class="text-muted">/</small>
+    <a href="/contact" class="text-muted ms-2 small">{{ 'Contact'|t }}</a>
+  </div>
+
+  <div class="col-lg-4 text-center">
+    {% if page.header %}
+      {{ page.header }}
+    {% else %}
+      <small class="text-muted">{{ 'Call Us: (+012) 1234 567890'|t }}</small>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4 text-end">
+    {% if logged_in %}
+      <div class="dropdown d-inline-block">
+        <a href="#" class="dropdown-toggle text-muted small" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="fa fa-user-circle me-1"></i>{{ current_username }}
+        </a>
+        <div class="dropdown-menu dropdown-menu-end rounded">
+          <a href="/user"        class="dropdown-item"><i class="fa fa-user me-2"></i>{{ 'My Account'|t }}</a>
+          <a href="/user/orders" class="dropdown-item"><i class="fa fa-box me-2"></i>{{ 'My Orders'|t }}</a>
+          <div class="dropdown-divider"></div>
+          <a href="/user/logout" class="dropdown-item text-danger"><i class="fa fa-sign-out-alt me-2"></i>{{ 'Log Out'|t }}</a>
+        </div>
+      </div>
+    {% else %}
+      <a href="/user/login"    class="text-muted small me-2">{{ 'Login'|t }}</a>
+      <small class="text-muted">/</small>
+      <a href="/user/register" class="text-muted small ms-2">{{ 'Register'|t }}</a>
+    {% endif %}
+  </div>
+
+</div>
+
+{# ══════════════════════════════════════════════════════════════════
+   2. BRANDING — logo, search, cart, desktop only
+   ══════════════════════════════════════════════════════════════════ #}
+<div class="container-fluid px-5 py-4 d-none d-lg-block" id="branding-sticky">
+  <div class="row gx-0 align-items-center">
+
+    <div class="col-lg-3 text-start">
+      <a href="{{ path('<front>') }}" class="navbar-brand p-0">
+        {% if logo %}
+          <img src="{{ logo }}" alt="{{ site_name }}" class="img-fluid" style="height:100px; max-width:260px; object-fit:contain;">
+        {% else %}
+          <h1 class="display-5 text-primary m-0">
+            <i class="fas fa-shopping-bag text-secondary me-2"></i>{{ site_name }}
+          </h1>
+        {% endif %}
+      </a>
+    </div>
+
+    <div class="col-lg-6 text-center">
+      <div class="position-relative ps-4">
+        {{ search_form }}
+      </div>
+    </div>
+
+    <div class="col-lg-3 text-end d-flex align-items-center justify-content-end gap-3">
+
+      <a href="/wishlist"
+         class="text-muted d-inline-flex align-items-center text-decoration-none position-relative"
+         aria-label="{{ 'Wishlist'|t }}">
+        <span class="rounded-circle border d-inline-flex align-items-center justify-content-center position-relative"
+              style="width:42px;height:42px;">
+          <i class="far fa-heart"></i>
+          <span class="wishlist-count-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                style="font-size:0.65rem;display:none;">0</span>
+        </span>
+      </a>
+
+      <a href="{{ path('commerce_cart.page') }}"
+         class="text-muted d-inline-flex align-items-center text-decoration-none"
+         aria-label="{{ 'Shopping cart'|t }}">
+        <span class="rounded-circle border d-inline-flex align-items-center justify-content-center position-relative"
+              style="width:42px;height:42px;">
+          <i class="fas fa-shopping-cart"></i>
+          {% if cart_count is defined and cart_count > 0 %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                  style="font-size:0.65rem;">
+              {{ cart_count }}
+            </span>
+          {% endif %}
+        </span>
+        <span class="text-dark ms-2 fw-semibold">
+          {{ cart_total is defined ? cart_total : '$0.00' }}
+        </span>
+      </a>
+
+    </div>
+
+  </div>
+</div>
+
+<header id="site-header" role="banner">
+  <div class="container-fluid nav-bar p-0">
+
+    {# ══════════════════════════════════════════════════════════════════
+       3+4. SINGLE NAVBAR — static page links + taxonomy categories combined
+            Static links: Admin → Structure → Menus → Main navigation
+            Category links: Admin → Structure → Taxonomy → Product Category
+            Mobile: hamburger shows both
+    ══════════════════════════════════════════════════════════════════ #}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary px-5"
+         aria-label="{{ 'Site navigation'|t }}">
+
+      {# Mobile: logo #}
+      <a href="{{ path('<front>') }}" class="navbar-brand d-lg-none">
+        <span class="fw-bold fs-4">
+          <i class="fas fa-shopping-bag text-white me-2"></i>{{ site_name }}
+        </span>
+      </a>
+
+      {# Hamburger #}
+      <button class="navbar-toggler ms-auto border-0" type="button"
+              data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
+              aria-controls="navbarCollapse" aria-expanded="false"
+              aria-label="{{ 'Toggle navigation'|t }}">
+        <i class="fa fa-bars fa-1x"></i>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarCollapse">
+
+        {# Static page links (Home, Products, Shop, Blogs…) #}
+        {% if page.primary_menu %}
+          {{ page.primary_menu }}
+          <div class="nav-divider d-none d-lg-block"></div>
+        {% endif %}
+
+        {# Taxonomy category links (Electronics, Kids, Mens…) #}
+        {% include directory ~ '/templates/layout/partials/mega-menu.html.twig' %}
+
+        {# Mobile cart button #}
+        <a href="{{ path('commerce_cart.page') }}"
+           class="btn btn-secondary rounded-pill py-2 px-4 my-2 d-lg-none">
+          <i class="fas fa-shopping-cart me-2"></i>{{ 'Cart'|t }}
+          {% if cart_count is defined and cart_count > 0 %}
+            <span class="badge bg-danger rounded-pill ms-1">{{ cart_count }}</span>
+          {% endif %}
+        </a>
+
+      </div>
+    </nav>
+
+  </div>
+
+  {# ══════════════════════════════════════════════════════════════════
+     MOBILE SEARCH BAR — always visible below navbar on small screens
+  ══════════════════════════════════════════════════════════════════ #}
+  <div class="d-lg-none mobile-search-bar">
+    <div class="position-relative px-3 py-2">
+      {{ search_form }}
+    </div>
+  </div>
+
+</header>

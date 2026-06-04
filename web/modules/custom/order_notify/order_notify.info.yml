@@ -1,0 +1,8 @@
+name: Order Notifications
+description: Shows a notification bell in the admin toolbar for new Commerce orders.
+type: module
+core_version_requirement: ^10 || ^11
+package: Custom
+dependencies:
+  - drupal:toolbar
+  - commerce:commerce_order

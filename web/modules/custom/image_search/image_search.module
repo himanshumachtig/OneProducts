@@ -1,0 +1,45 @@
+<?php
+
+use Drupal\Core\Entity\EntityInterface;
+
+/**
+ * Implements hook_theme().
+ */
+function image_search_theme(): array {
+  return [
+    'image_search_page' => [
+      'variables' => [],
+      'template'  => 'image-search-page',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_entity_insert().
+ * Adds new product to the image hash index automatically.
+ */
+function image_search_entity_insert(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() === 'commerce_product') {
+    \Drupal::service('image_search.hasher')->rebuildForProduct($entity);
+  }
+}
+
+/**
+ * Implements hook_entity_update().
+ * Re-hashes when product image changes.
+ */
+function image_search_entity_update(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() === 'commerce_product') {
+    \Drupal::service('image_search.hasher')->rebuildForProduct($entity);
+  }
+}
+
+/**
+ * Implements hook_entity_delete().
+ * Removes deleted product from index.
+ */
+function image_search_entity_delete(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() === 'commerce_product') {
+    \Drupal::service('image_search.hasher')->removeFromIndex((int) $entity->id());
+  }
+}

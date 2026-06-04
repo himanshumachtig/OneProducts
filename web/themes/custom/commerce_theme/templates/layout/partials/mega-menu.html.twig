@@ -1,0 +1,67 @@
+{#
+/**
+ * @file mega-menu.html.twig
+ *
+ * CATEGORY NAVIGATION — taxonomy only, no hardcoded items.
+ *
+ * Manage at: Admin → Structure → Taxonomy → Product Category
+ * - Add a top-level term  → appears as a nav item
+ * - Add a child term      → appears as a dropdown item under its parent
+ * - Delete/rename a term  → updates automatically
+ *
+ * Static page links (Home, About, Blog, Contact) belong in Main Navigation,
+ * not here. Manage those at: Admin → Structure → Menus → Main navigation.
+ */
+#}
+
+<ul class="navbar-nav">
+  {% for item in mega_menu_tree %}
+
+    {% if item.has_children %}
+
+      {# Category WITH subcategories → dropdown #}
+      <li class="nav-item cat-dropdown">
+
+        <a href="{{ item.url }}" class="nav-link cat-link">
+          {{ item.label }}
+          <i class="fas fa-chevron-down fa-xs ms-1 cat-arrow"></i>
+        </a>
+
+        {# Mobile toggle — opens submenu without navigating away #}
+        <button class="cat-mobile-toggle d-lg-none" type="button"
+                aria-label="{{ 'Toggle'|t }} {{ item.label }}">
+          <i class="fas fa-chevron-down fa-xs"></i>
+        </button>
+
+        <ul class="dropdown-menu cat-submenu">
+          <li>
+            <a href="{{ item.url }}" class="dropdown-item fw-semibold border-bottom pb-2 mb-1">
+              {{ 'All'|t }} {{ item.label }}
+            </a>
+          </li>
+          {% for child in item.children %}
+            <li>
+              <a href="{{ child.url }}" class="dropdown-item">
+                <span class="cat-dot">●</span>
+                {{ child.label }}
+                {% if child.count > 0 %}
+                  <span class="cat-count">({{ child.count }})</span>
+                {% endif %}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+
+      </li>
+
+    {% else %}
+
+      {# Category WITHOUT subcategories → plain link #}
+      <li class="nav-item">
+        <a href="{{ item.url }}" class="nav-link">{{ item.label }}</a>
+      </li>
+
+    {% endif %}
+
+  {% endfor %}
+</ul>

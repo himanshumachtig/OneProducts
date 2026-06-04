@@ -1,0 +1,52 @@
+ai_domain_chatbot.settings:
+  path: '/admin/config/ai-chatbot'
+  defaults:
+    _form: '\Drupal\ai_domain_chatbot\Form\SettingsForm'
+    _title: 'AI Domain Chatbot Settings'
+  requirements:
+    _permission: 'administer site configuration'
+
+ai_domain_chatbot.chat:
+  path: '/api/ai-chatbot'
+  defaults:
+    _controller: '\Drupal\ai_domain_chatbot\Controller\ChatController::chat'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]
+  options:
+    no_cache: TRUE
+
+ai_domain_chatbot.crawl:
+  path: '/admin/config/ai-chatbot/crawl'
+  defaults:
+    _form: '\Drupal\ai_domain_chatbot\Form\CrawlForm'
+    _title: 'Crawl Websites'
+  requirements:
+    _permission: 'administer site configuration'
+
+ai_domain_chatbot.indexed:
+  path: '/admin/config/ai-chatbot/indexed'
+  defaults:
+    _controller: '\Drupal\ai_domain_chatbot\Controller\IndexedPagesController::list'
+    _title: 'Indexed Pages'
+  requirements:
+    _permission: 'administer site configuration'
+  options:
+    no_cache: TRUE
+
+ai_domain_chatbot.indexed_delete_domain:
+  path: '/admin/config/ai-chatbot/indexed/domain/{domain}/delete'
+  defaults:
+    _form: '\Drupal\ai_domain_chatbot\Form\DeleteDomainIndexForm'
+    _title: 'Delete Domain Index'
+  requirements:
+    _permission: 'administer site configuration'
+
+ai_domain_chatbot.indexed_delete:
+  path: '/admin/config/ai-chatbot/indexed/{id}/delete'
+  defaults:
+    _form: '\Drupal\ai_domain_chatbot\Form\DeleteIndexedPageForm'
+    _title: 'Delete Indexed Page'
+  requirements:
+    _permission: 'administer site configuration'
+    id: \d+

@@ -1,0 +1,155 @@
+global-styling:
+  version: 1.0
+  css:
+    theme:
+      https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap: { external: true }
+      https://use.fontawesome.com/releases/v5.15.4/css/all.css: { minified: true, external: true }
+      https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css: { minified: true, external: true }
+      lib/animate/animate.min.css: {}
+      lib/owlcarousel/assets/owl.carousel.min.css: {}
+      lib/lightbox/css/lightbox.min.css: {}
+      css/bootstrap.min.css: {}
+      css/style.css: {}
+
+global-scripts:
+  version: 1.0
+  js:
+    https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js: { minified: true, external: true }
+    https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js: { minified: true, external: true }
+    lib/wow/wow.min.js: {}
+    lib/owlcarousel/owl.carousel.min.js: {}
+    js/main.js: {}
+  dependencies:
+    - core/drupal
+
+notifications:
+  version: 1.0
+  js:
+    js/notifications.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+    - commerce_theme/global-scripts
+
+lightbox:
+  version: 1.0
+  css:
+    theme:
+      lib/lightbox/css/lightbox.min.css: {}
+  js:
+    lib/lightbox/js/lightbox.min.js: {}
+
+mega-menu:
+  version: 1.0
+  css:
+    theme:
+      css/mega-menu.css: {}
+  js:
+    js/mega-menu.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+live-search:
+  version: 1.0
+  js:
+    js/live-search.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+quick-view:
+  version: 1.0
+  js:
+    js/quick-view.js: {}
+  dependencies:
+    - core/drupal
+    - commerce_theme/global-scripts
+
+load-more:
+  version: 1.0
+  js:
+    js/load-more.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+    - commerce_theme/global-scripts
+
+order-actions:
+  version: 1.0
+  js:
+    js/order-actions.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+    - commerce_theme/global-scripts
+
+popup:
+  version: 1.0
+  css:
+    theme:
+      css/popup.css: {}
+  js:
+    js/popup.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+image-search-btn:
+  version: 1.0
+  js:
+    js/image-search-btn.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+product-gallery:
+  version: 1.0
+  js:
+    js/product-gallery.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+    - commerce_theme/global-scripts
+
+wishlist:
+  version: 1.0
+  css:
+    theme:
+      css/wishlist.css: {}
+  js:
+    js/wishlist.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+    - commerce_theme/global-scripts
+
+product-reviews:
+  version: 1.0
+  css:
+    theme:
+      css/reviews.css: {}
+  js:
+    js/reviews.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+account-settings:
+  version: 1.0
+  js:
+    js/account-settings.js: {}
+  dependencies:
+    - commerce_theme/global-scripts
+
+user-password:
+  version: 1.0
+  js:
+    js/user-password.js: {}
+  dependencies:
+    - commerce_theme/global-scripts

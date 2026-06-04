@@ -1,0 +1,8 @@
+name: Image Search
+description: Upload an image to find visually similar products using perceptual hashing.
+type: module
+core_version_requirement: ^10 || ^11
+package: Custom
+dependencies:
+  - drupal:file
+  - commerce:commerce_product

@@ -1,0 +1,100 @@
+{#
+/**
+ * @file
+ * Product card (teaser) — used in the /products listing grid.
+ * Maps to shop.html product cards from Electro template.
+ *
+ * Variables:
+ * - node: The product node entity.
+ * - url: URL to the full product page.
+ * - label: Product title.
+ * - content: Rendered fields (image, price, badge, category).
+ */
+#}
+{%
+  set badge_colors = {
+    'new':      'bg-primary',
+    'sale':     'bg-danger',
+    'hot':      'bg-warning text-dark',
+    'featured': 'bg-success',
+  }
+%}
+{%
+  set badge_val = node.field_product_badge.value
+%}
+
+<div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.1s">
+  <div class="product-item border rounded overflow-hidden h-100">
+
+    {# Product image with hover overlay #}
+    <div class="position-relative overflow-hidden product-img-wrapper">
+
+      {% if badge_val %}
+        <span class="position-absolute top-0 start-0 m-2 badge rounded-pill {{ badge_colors[badge_val] ?? 'bg-secondary' }}">
+          {{ node.field_product_badge.value|capitalize }}
+        </span>
+      {% endif %}
+
+      <a href="{{ url }}" class="d-block">
+        {% if content.field_product_image %}
+          {{ content.field_product_image }}
+        {% else %}
+          <img src="{{ base_path ~ directory }}/images/product-1.png"
+            class="img-fluid w-100" style="height: 220px; object-fit: cover;"
+            alt="{{ label }}">
+        {% endif %}
+      </a>
+
+      {# Hover action bar #}
+      <div class="product-action">
+        <a href="{{ url }}" class="btn btn-primary rounded-pill py-2 px-4 w-100">
+          <i class="fas fa-eye me-2"></i>{{ 'View Details'|t }}
+        </a>
+      </div>
+    </div>
+
+    {# Product info #}
+    <div class="p-4">
+      {# Category + rating row #}
+      <div class="d-flex justify-content-between mb-2">
+        <small class="text-muted">
+          {% if content.field_product_category %}
+            {{ content.field_product_category }}
+          {% endif %}
+        </small>
+        <div class="d-flex">
+          <i class="fa fa-star text-secondary small"></i>
+          <i class="fa fa-star text-secondary small"></i>
+          <i class="fa fa-star text-secondary small"></i>
+          <i class="fa fa-star text-secondary small"></i>
+          <i class="fa fa-star small text-muted"></i>
+        </div>
+      </div>
+
+      {# Title #}
+      <h5 class="fw-bold mb-2">
+        <a href="{{ url }}" class="text-dark text-decoration-none">{{ label }}</a>
+      </h5>
+
+      {# Tagline #}
+      {% if node.field_product_tagline.value %}
+        <p class="text-muted small mb-2">{{ node.field_product_tagline.value }}</p>
+      {% endif %}
+
+      {# Price + Add to cart row #}
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <div>
+          {% if node.field_product_price.value %}
+            <h5 class="text-primary fw-bold mb-0">
+              ${{ node.field_product_price.value|number_format(2) }}
+            </h5>
+          {% endif %}
+        </div>
+        <a href="{{ url }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+          <i class="fas fa-shopping-cart me-1"></i>{{ 'Buy'|t }}
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,5 @@
+name: Test Content List
+description: Lists all Test content type nodes on the frontend.
+type: module
+core_version_requirement: ^10 || ^11
+package: Custom

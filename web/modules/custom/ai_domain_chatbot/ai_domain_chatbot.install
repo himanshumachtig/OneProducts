@@ -1,0 +1,29 @@
+<?php
+
+/**
+ * Creates the table for storing crawled page content.
+ */
+function ai_domain_chatbot_schema() {
+  return [
+    'ai_domain_chatbot_pages' => [
+      'description' => 'Stores crawled content from configured domains.',
+      'fields' => [
+        'id'         => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+        'url'        => ['type' => 'varchar', 'length' => 2048, 'not null' => TRUE, 'default' => ''],
+        'domain'     => ['type' => 'varchar', 'length' => 255,  'not null' => TRUE, 'default' => ''],
+        'title'      => ['type' => 'varchar', 'length' => 512,  'not null' => TRUE, 'default' => ''],
+        'content'    => ['type' => 'text', 'size' => 'big', 'not null' => TRUE],
+        'crawled_at' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'domain' => ['domain'],
+      ],
+    ],
+  ];
+}
+
+function ai_domain_chatbot_uninstall() {
+  \Drupal::database()->schema()->dropTable('ai_domain_chatbot_pages');
+  \Drupal::configFactory()->getEditable('ai_domain_chatbot.settings')->delete();
+}

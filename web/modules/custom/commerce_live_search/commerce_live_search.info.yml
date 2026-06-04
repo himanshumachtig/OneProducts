@@ -1,0 +1,7 @@
+name: Commerce Live Search
+type: module
+description: JSON endpoint for live product search autocomplete.
+package: Custom
+core_version_requirement: ^10 || ^11
+dependencies:
+  - drupal:commerce_product

@@ -1,0 +1,173 @@
+{#
+/**
+ * @file page--user-account.html.twig
+ * User account pages: profile, orders, address book, payment methods.
+ * Provides a 2-column layout: left sidebar navigation + right content area.
+ * Replaces the unstyled Drupal local-tasks bullet list with a styled nav.
+ */
+#}
+
+{# ── Loading spinner ── #}
+<div id="spinner"
+     class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center"
+     style="z-index:9999;">
+  <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status">
+    <span class="visually-hidden">{{ 'Loading...'|t }}</span>
+  </div>
+</div>
+
+<div id="page-wrapper">
+
+  {% include directory ~ '/templates/layout/partials/site-header.html.twig' %}
+
+  <main id="main-content" role="main">
+
+    {# Page header banner #}
+    <div class="container-fluid page-header py-4">
+      <h1 class="text-center text-white display-6">{{ 'My Account'|t }}</h1>
+      <ol class="breadcrumb justify-content-center mb-0">
+        <li class="breadcrumb-item">
+          <a href="{{ path('<front>') }}">{{ 'Home'|t }}</a>
+        </li>
+        <li class="breadcrumb-item active text-white">{{ 'My Account'|t }}</li>
+      </ol>
+    </div>
+
+    {# Drupal messages (success, error, warnings) #}
+    <div class="highlighted container mt-3">{{ page.highlighted }}</div>
+
+    <div class="container py-5">
+      <div class="row g-4">
+
+        {# ── LEFT: Account sidebar navigation ── #}
+        <div class="col-lg-3">
+          <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+
+            {# User avatar + name header #}
+            <div class="card-header bg-primary text-white text-center py-4">
+              <div class="rounded-circle bg-white d-inline-flex align-items-center justify-content-center mb-3"
+                   style="width:72px;height:72px;">
+                <i class="fas fa-user fa-2x text-primary"></i>
+              </div>
+              <h6 class="mb-0 fw-semibold">{{ current_username }}</h6>
+              <small class="opacity-75">{{ 'Customer'|t }}</small>
+            </div>
+
+            {# Navigation links #}
+            <div class="list-group list-group-flush account-nav">
+              <a href="{{ path('entity.user.canonical', {'user': account_uid}) }}"
+                 class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-3
+                        {{ current_route == 'entity.user.canonical' ? 'active' : '' }}">
+                <i class="fas fa-user-circle fa-fw text-primary"></i>
+                {{ 'My Profile'|t }}
+              </a>
+              <a href="{{ path('view.commerce_user_orders.order_page', {'user': account_uid}) }}"
+                 class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-3
+                        {{ (current_route == 'view.commerce_user_orders.order_page' or current_route == 'commerce_live_search.order_detail') ? 'active' : '' }}">
+                <i class="fas fa-box fa-fw text-primary"></i>
+                {{ 'My Orders'|t }}
+              </a>
+              <a href="{{ path('commerce_order.address_book.overview', {'user': account_uid}) }}"
+                 class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-3
+                        {{ current_route in ['commerce_order.address_book.overview','commerce_order.address_book.add_form','commerce_order.address_book.edit_form'] ? 'active' : '' }}">
+                <i class="fas fa-map-marker-alt fa-fw text-primary"></i>
+                {{ 'Address Book'|t }}
+              </a>
+              <a href="{{ path('entity.user.edit_form', {'user': account_uid}) }}"
+                 class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-3
+                        {{ current_route == 'entity.user.edit_form' ? 'active' : '' }}">
+                <i class="fas fa-cog fa-fw text-primary"></i>
+                {{ 'Account Settings'|t }}
+              </a>
+              <a href="{{ path('user.logout') }}"
+                 class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-3 text-danger">
+                <i class="fas fa-sign-out-alt fa-fw"></i>
+                {{ 'Log Out'|t }}
+              </a>
+            </div>
+
+          </div>
+
+          {# Help card #}
+          <div class="card border-0 shadow-sm rounded-3 mt-4">
+            <div class="card-body text-center py-4">
+              <i class="fas fa-headset fa-2x text-primary mb-3"></i>
+              <h6 class="fw-semibold">{{ 'Need Help?'|t }}</h6>
+              <p class="text-muted small mb-3">{{ 'Our support team is available 24/7.'|t }}</p>
+              <a href="/contact" class="btn btn-outline-primary btn-sm rounded-pill px-4">
+                {{ 'Contact Us'|t }}
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {# ── RIGHT: Main content area ── #}
+        <div class="col-lg-9">
+          <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+
+            {# Contextual card header for address book pages #}
+            {% if current_route in ['commerce_order.address_book.overview','commerce_order.address_book.add_form','commerce_order.address_book.edit_form'] %}
+              <div class="card-header bg-white border-bottom px-4 py-3 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                  <div style="width:38px;height:38px;background:linear-gradient(135deg,#f28b00,#ff6b35);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-map-marker-alt text-white" style="font-size:.9rem;"></i>
+                  </div>
+                  <div>
+                    <h6 class="mb-0 fw-bold">
+                      {% if current_route == 'commerce_order.address_book.add_form' %}{{ 'Add New Address'|t }}
+                      {% elseif current_route == 'commerce_order.address_book.edit_form' %}{{ 'Edit Address'|t }}
+                      {% else %}{{ 'Saved Addresses'|t }}{% endif %}
+                    </h6>
+                    <small class="text-muted">
+                      {% if current_route == 'commerce_order.address_book.overview' %}{{ 'Manage your delivery addresses'|t }}
+                      {% else %}{{ 'Fill in the address details below'|t }}{% endif %}
+                    </small>
+                  </div>
+                </div>
+                {% if current_route == 'commerce_order.address_book.overview' %}
+                  <a href="{{ path('commerce_order.address_book.add_form', {'user': account_uid, 'profile_type': 'customer'}) }}"
+                     class="address-book-add-btn">
+                    <i class="fas fa-plus"></i> {{ 'Add Address'|t }}
+                  </a>
+                {% else %}
+                  <a href="{{ path('commerce_order.address_book.overview', {'user': account_uid}) }}"
+                     class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                    <i class="fas fa-arrow-left me-1"></i>{{ 'Back'|t }}
+                  </a>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            <div class="card-body p-4">
+              {# Wrap address form in a styled container #}
+              {% if current_route in ['commerce_order.address_book.add_form','commerce_order.address_book.edit_form'] %}
+                <div class="address-form-container">
+                  {{ page.content }}
+                </div>
+              {% elseif current_route == 'entity.user.edit_form' %}
+                {{ attach_library('commerce_theme/account-settings') }}
+                <div class="account-settings-header">
+                  <div class="account-settings-icon">
+                    <i class="fas fa-cog text-white" style="font-size:.95rem;"></i>
+                  </div>
+                  <div>
+                    <h6 class="mb-0 fw-bold">{{ 'Account Settings'|t }}</h6>
+                    <small class="text-muted">{{ 'Update your email or change your password'|t }}</small>
+                  </div>
+                </div>
+                {{ page.content }}
+              {% else %}
+                {{ page.content }}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+      </div>{# /.row #}
+    </div>{# /.container #}
+
+  </main>
+
+  {% include directory ~ '/templates/layout/partials/site-footer.html.twig' %}
+
+</div>{# /#page-wrapper #}

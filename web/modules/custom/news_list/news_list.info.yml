@@ -1,0 +1,5 @@
+name: News List
+description: Displays all News content on /news page.
+type: module
+core_version_requirement: ^10 || ^11
+package: Custom

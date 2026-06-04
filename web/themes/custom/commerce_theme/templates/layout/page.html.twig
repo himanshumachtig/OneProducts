@@ -1,0 +1,110 @@
+{#
+/**
+ * @file page.html.twig
+ * Drupal 11 page template — inner pages (all routes except front).
+ *
+ * The full HTML document wrapper lives in html.html.twig.
+ * This template only outputs visible page content.
+ *
+ * Regions used:
+ *   page.primary_menu   — main navigation (rendered by site-header partial)
+ *   page.hero           — optional full-width banner below the nav
+ *   page.highlighted    — Drupal messages, admin local tasks/actions
+ *   page.content        — the main page content block (required)
+ *   page.sidebar_first  — optional left sidebar
+ *   page.sidebar_second — optional right sidebar
+ *   page.footer_top     — footer information columns
+ *   page.footer_menu    — footer navigation links
+ *   page.footer_bottom  — copyright bar
+ *
+ * Variables:
+ *   page_banner_title — set in commerce_theme_preprocess_page() for inner pages
+ */
+#}
+
+{# ── Loading spinner (hidden by JS after page load) ── #}
+<div id="spinner"
+     class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center"
+     style="z-index:9999;">
+  <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status">
+    <span class="visually-hidden">{{ 'Loading...'|t }}</span>
+  </div>
+</div>
+
+<div id="page-wrapper">
+
+  {# ── SITE HEADER (topbar + branding + navigation) ── #}
+  {% include directory ~ '/templates/layout/partials/site-header.html.twig' %}
+
+  {# ── HERO REGION — full-width, no container (optional) ── #}
+  {% if page.hero %}
+    <section id="hero-region" aria-label="{{ 'Page banner'|t }}">
+      {{ page.hero }}
+    </section>
+  {% endif %}
+
+  {# ── MAIN CONTENT AREA ── #}
+  <main id="main-content" role="main">
+
+    {# Inner-page banner (title + breadcrumb) — skipped on front / views / commerce pages #}
+    {% if page_banner_title %}
+      <div class="container-fluid page-header py-5">
+        <h1 class="text-center text-white display-6">{{ page_banner_title }}</h1>
+        <ol class="breadcrumb justify-content-center mb-0">
+          <li class="breadcrumb-item">
+            <a href="{{ path('<front>') }}">{{ 'Home'|t }}</a>
+          </li>
+          <li class="breadcrumb-item active text-white">{{ page_banner_title }}</li>
+        </ol>
+      </div>
+    {% endif %}
+
+    {#
+      Highlighted region: Drupal status messages + admin tabs (local tasks/actions).
+      Always rendered so [data-drupal-messages] target exists for AJAX updates.
+    #}
+    <div class="highlighted">{{ page.highlighted }}</div>
+
+    {# Help text (admin-only, usually hidden for site visitors) #}
+    {% if page.help %}
+      <div class="help container py-2">{{ page.help }}</div>
+    {% endif %}
+
+    {# ── CONTENT + OPTIONAL SIDEBARS ── #}
+    <div class="layout-container container-fluid px-5 py-4">
+      <div class="row">
+
+        {% if page.sidebar_first %}
+          {# Left sidebar layout #}
+          <aside class="col-lg-3 mb-4" role="complementary">
+            {{ page.sidebar_first }}
+          </aside>
+          <div class="col-lg-9">
+            {{ page.content }}
+          </div>
+
+        {% elseif page.sidebar_second %}
+          {# Right sidebar layout #}
+          <div class="col-lg-9">
+            {{ page.content }}
+          </div>
+          <aside class="col-lg-3 mb-4" role="complementary">
+            {{ page.sidebar_second }}
+          </aside>
+
+        {% else %}
+          {# Full-width layout (default) #}
+          <div class="col-12">
+            {{ page.content }}
+          </div>
+        {% endif %}
+
+      </div>{# /.row #}
+    </div>{# /.layout-container #}
+
+  </main>
+
+  {# ── SITE FOOTER ── #}
+  {% include directory ~ '/templates/layout/partials/site-footer.html.twig' %}
+
+</div>{# /#page-wrapper #}

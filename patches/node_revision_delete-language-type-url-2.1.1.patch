@@ -1,0 +1,22 @@
+diff --git a/src/NodeRevisionDelete.php b/src/NodeRevisionDelete.php
+index 1111111..2222222 100644
+--- a/src/NodeRevisionDelete.php
++++ b/src/NodeRevisionDelete.php
+@@ -92,7 +92,7 @@ class NodeRevisionDelete implements NodeRevisionDeleteInterface {
+
+     // Fall back to the current language if no language code is specified.
+     if ($langcode === NULL) {
+-      $langcode = $this->languageManager->getCurrentLanguage()->getId();
++      $langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId();
+     }
+
+     // Use an entity query to find all revision IDs older than the specified
+@@ -119,7 +119,7 @@ class NodeRevisionDelete implements NodeRevisionDeleteInterface {
+
+     // Fall back to the current language if no language code is specified.
+     if ($langcode === NULL) {
+-      $langcode = $this->languageManager->getCurrentLanguage()->getId();
++      $langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId();
+     }
+
+     $vids = $this->getPreviousRevisionIds($nid, $currently_deleted_revision_id, $langcode);

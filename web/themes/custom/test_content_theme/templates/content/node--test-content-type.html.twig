@@ -1,0 +1,47 @@
+{#
+/**
+ * @file
+ * Theme override for nodes in the Test Content Type content type.
+ */
+#}
+<article{{ attributes.addClass('node', 'node--type-test-content-type', 'test-content-type') }}>
+  {{ title_prefix }}
+  {% if not page and label %}
+    <h2{{ title_attributes.addClass('test-content-type__title') }}>
+      <a href="{{ url }}" rel="bookmark">{{ label }}</a>
+    </h2>
+  {% elseif label %}
+    <h1{{ title_attributes.addClass('test-content-type__title') }}>{{ label }}</h1>
+  {% endif %}
+  {{ title_suffix }}
+
+  {% if display_submitted %}
+    <div class="test-content-type__meta">
+      {{ author_picture }}
+      <span>{{ 'Submitted by'|t }} {{ author_name }} {{ 'on'|t }} {{ date }}</span>
+      {{ metadata }}
+    </div>
+  {% endif %}
+
+  <div{{ content_attributes.addClass('test-content-type__content') }}>
+    {% if content.field_image %}
+      <div class="test-content-type__image">
+        {{ content.field_image }}
+      </div>
+    {% endif %}
+
+    {% if content.field_title %}
+      <div class="test-content-type__field-title">
+        {{ content.field_title }}
+      </div>
+    {% endif %}
+
+    {% if content.field_body %}
+      <div class="test-content-type__body">
+        {{ content.field_body }}
+      </div>
+    {% endif %}
+
+    {{ content|without('field_image', 'field_title', 'field_body') }}
+  </div>
+</article>

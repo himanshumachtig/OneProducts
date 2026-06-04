@@ -1,0 +1,18 @@
+services:
+  ai_domain_chatbot.searcher:
+    class: Drupal\ai_domain_chatbot\Service\DomainSearcher
+    arguments:
+      - '@database'
+      - '@http_client'
+      - '@logger.factory'
+      - '@datetime.time'
+
+  ai_domain_chatbot.event_subscriber:
+    class: Drupal\ai_domain_chatbot\EventSubscriber\DomainChatbotSubscriber
+    arguments:
+      - '@ai_assistant_api.runner'
+      - '@ai_domain_chatbot.searcher'
+      - '@config.factory'
+      - '@logger.factory'
+    tags:
+      - { name: event_subscriber }

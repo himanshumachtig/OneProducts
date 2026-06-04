@@ -1,0 +1,6 @@
+custom_contact_form.submissions:
+  title: 'Contact Form Submissions'
+  description: 'View all contact form submissions.'
+  route_name: custom_contact_form.submissions
+  parent: system.admin_reports
+  weight: 10

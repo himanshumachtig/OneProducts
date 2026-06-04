@@ -1,0 +1,4 @@
+<?php
+
+// Domain restriction logic is handled by DomainChatbotSubscriber via the
+// PrepromptSystemRoleEvent (ai_assistant.change_preprompt_message).

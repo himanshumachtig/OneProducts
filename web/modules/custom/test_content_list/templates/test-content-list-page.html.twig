@@ -1,0 +1,41 @@
+<div class="test-content-listing">
+  {% if items %}
+    <div class="test-content-listing__grid">
+      {% for item in items %}
+        <div class="test-content-listing__card">
+
+          {% if item.image_url %}
+            <div class="test-content-listing__image">
+              <a href="{{ item.url }}">
+                <img src="{{ item.image_url }}" alt="{{ item.image_alt }}" />
+              </a>
+            </div>
+          {% endif %}
+
+          <div class="test-content-listing__body">
+            <h2 class="test-content-listing__title">
+              <a href="{{ item.url }}">{{ item.title }}</a>
+            </h2>
+
+            {% if item.field_title %}
+              <div class="test-content-listing__field-title">
+                {{ item.field_title }}
+              </div>
+            {% endif %}
+
+            {% if item.field_body %}
+              <div class="test-content-listing__field-body">
+                {{ item.field_body|raw }}
+              </div>
+            {% endif %}
+
+            <a class="test-content-listing__read-more" href="{{ item.url }}">Read more</a>
+          </div>
+
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No content found.</p>
+  {% endif %}
+</div>

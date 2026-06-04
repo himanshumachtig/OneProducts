@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Checkout order summary sidebar.
+ *
+ * Variables:
+ * - order_entity: The order entity.
+ * - order_items: Rendered order items.
+ * - totals: Rendered totals.
+ */
+#}
+<div class="bg-light rounded p-4">
+  <h4 class="mb-4">{{ 'Order Summary'|t }}</h4>
+
+  {% if order_items %}
+    <div class="order-summary-items mb-3">
+      {{ order_items }}
+    </div>
+    <hr>
+    <div class="order-summary-totals">
+      {{ totals }}
+    </div>
+  {% endif %}
+</div>

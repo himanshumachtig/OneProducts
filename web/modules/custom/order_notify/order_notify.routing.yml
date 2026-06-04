@@ -1,0 +1,29 @@
+order_notify.count:
+  path: '/admin/order-notify/count'
+  defaults:
+    _controller: '\Drupal\order_notify\Controller\OrderNotifyController::count'
+    _title: 'Order notification count'
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    no_cache: TRUE
+
+order_notify.mark_read:
+  path: '/admin/order-notify/mark-read'
+  defaults:
+    _controller: '\Drupal\order_notify\Controller\OrderNotifyController::markRead'
+    _title: 'Mark orders read'
+  methods: [POST]
+  requirements:
+    _permission: 'access administration pages'
+    _csrf_request_header_token: 'TRUE'
+
+order_notify.dismiss:
+  path: '/admin/order-notify/dismiss'
+  defaults:
+    _controller: '\Drupal\order_notify\Controller\OrderNotifyController::dismiss'
+    _title: 'Dismiss single order notification'
+  methods: [POST]
+  requirements:
+    _permission: 'access administration pages'
+    _csrf_request_header_token: 'TRUE'

@@ -1,0 +1,83 @@
+<?php
+
+/**
+ * @file
+ * Enforces authenticated-only cart operations.
+ *
+ * Why this module exists
+ * ─────────────────────
+ * Drupal Commerce 3.x allows anonymous carts by default (uid=0 orders stored
+ * in the PHP session).  This causes two production problems on this site:
+ *
+ * 1. Cart data leakage — The `cart` cache context key is an empty string ("")
+ *    for every user who has no items in their cart.  The Dynamic Page Cache
+ *    therefore serves the SAME cached page (including the logged-in username)
+ *    to any user whose cart is empty.  Adding the `user` context to our
+ *    preprocess hook solves this, but the safest long-term fix is to eliminate
+ *    anonymous carts entirely so the condition never arises.
+ *
+ * 2. Cart merging on login — When an anonymous user logs in, Commerce calls
+ *    CartAssignment to reassign the session cart to the new UID.  If the
+ *    session contains stale order IDs from a previous anonymous visit (or from
+ *    another user who used the same device without a proper logout), those
+ *    items appear in the newly logged-in user's cart.  Disabling anonymous
+ *    cart creation removes all stale uid=0 orders and prevents this race.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Replaces the "Add to Cart" button with a "Login to Purchase" link for
+ * anonymous users.  We cannot simply deny form access because the product page
+ * must still render; we instead substitute a login prompt inside the same
+ * form wrapper so the layout is preserved.
+ */
+function commerce_auth_cart_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  if (!str_starts_with($form_id, 'commerce_order_item_add_to_cart_form')) {
+    return;
+  }
+
+  $current_user = \Drupal::currentUser();
+  if ($current_user->isAuthenticated()) {
+    return;
+  }
+
+  // Hide every real form control — variation picker, quantity, submit.
+  $form['purchased_entity']['#access'] = FALSE;
+  $form['quantity']['#access']          = FALSE;
+
+  // Replace the submit button with a login CTA.
+  $destination = \Drupal::service('redirect.destination')->getAsArray();
+  $login_url   = Url::fromRoute('user.login', [], ['query' => $destination])->toString();
+
+  $form['actions']['submit']['#access'] = FALSE;
+  $form['actions']['login_prompt'] = [
+    '#type'       => 'markup',
+    '#markup'     => '<a href="' . htmlspecialchars($login_url, ENT_QUOTES) . '" '
+                   . 'class="btn btn-primary btn-lg w-100 mt-3">'
+                   . t('Login to Purchase')
+                   . '</a>',
+    '#weight'     => 10,
+    '#cache'      => ['contexts' => ['user.roles:anonymous']],
+  ];
+}
+
+/**
+ * Implements hook_user_logout().
+ *
+ * Clears the commerce cart session data when a user logs out so that the next
+ * visitor on the same browser cannot see the previous user's session cart IDs.
+ *
+ * Note: For authenticated users the cart is stored by UID in the database, not
+ * in the session.  Clearing the session keys here is therefore safe — it
+ * removes only the session pointers, not the actual order entities, which
+ * remain in the DB and are reloaded the next time that UID logs in.
+ */
+function commerce_auth_cart_user_logout($account): void {
+  $session = \Drupal::service('session');
+  $session->remove('commerce_cart_orders');
+  $session->remove('commerce_cart_completed_orders');
+}

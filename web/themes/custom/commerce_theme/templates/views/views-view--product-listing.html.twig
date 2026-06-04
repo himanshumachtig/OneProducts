@@ -1,0 +1,206 @@
+{#
+/**
+ * @file
+ * Product listing view — /products page (shop.html equivalent).
+ * View ID: product_listing
+ */
+#}
+
+{# Page header with breadcrumb #}
+<div class="container-fluid page-header py-5">
+  <h1 class="text-center text-white display-6 wow fadeInUp" data-wow-delay="0.1s">
+    {{ 'Shop'|t }}
+  </h1>
+  <ol class="breadcrumb justify-content-center mb-0 wow fadeInUp" data-wow-delay="0.3s">
+    <li class="breadcrumb-item"><a href="/">{{ 'Home'|t }}</a></li>
+    <li class="breadcrumb-item active text-white">{{ 'Shop'|t }}</li>
+  </ol>
+</div>
+
+{# Services strip #}
+<div class="container-fluid px-0 border-bottom">
+  <div class="row g-0">
+    <div class="col-6 col-md-4 col-lg-2 border-start border-end wow fadeInUp" data-wow-delay="0.1s">
+      <div class="p-3 p-lg-4">
+        <div class="d-inline-flex align-items-center">
+          <i class="fa fa-sync-alt fa-2x text-primary"></i>
+          <div class="ms-3">
+            <h6 class="text-uppercase mb-1 small">{{ 'Free Return'|t }}</h6>
+            <p class="mb-0 small text-muted">{{ '30 day guarantee'|t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 border-end wow fadeInUp" data-wow-delay="0.2s">
+      <div class="p-3 p-lg-4">
+        <div class="d-flex align-items-center">
+          <i class="fab fa-telegram-plane fa-2x text-primary"></i>
+          <div class="ms-3">
+            <h6 class="text-uppercase mb-1 small">{{ 'Free Shipping'|t }}</h6>
+            <p class="mb-0 small text-muted">{{ 'On all orders'|t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 border-end wow fadeInUp" data-wow-delay="0.3s">
+      <div class="p-3 p-lg-4">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-life-ring fa-2x text-primary"></i>
+          <div class="ms-3">
+            <h6 class="text-uppercase mb-1 small">{{ 'Support 24/7'|t }}</h6>
+            <p class="mb-0 small text-muted">{{ 'Online support'|t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 border-end wow fadeInUp" data-wow-delay="0.4s">
+      <div class="p-3 p-lg-4">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-lock fa-2x text-primary"></i>
+          <div class="ms-3">
+            <h6 class="text-uppercase mb-1 small">{{ 'Secure Payment'|t }}</h6>
+            <p class="mb-0 small text-muted">{{ '100% secure'|t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 border-end wow fadeInUp" data-wow-delay="0.5s">
+      <div class="p-3 p-lg-4">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-credit-card fa-2x text-primary"></i>
+          <div class="ms-3">
+            <h6 class="text-uppercase mb-1 small">{{ 'Gift Cards'|t }}</h6>
+            <p class="mb-0 small text-muted">{{ 'Orders over $50'|t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2 border-end wow fadeInUp" data-wow-delay="0.6s">
+      <div class="p-3 p-lg-4">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-blog fa-2x text-primary"></i>
+          <div class="ms-3">
+            <h6 class="text-uppercase mb-1 small">{{ 'Online Service'|t }}</h6>
+            <p class="mb-0 small text-muted">{{ 'Returns in 30 days'|t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Main shop layout #}
+<div class="container-fluid shop py-5">
+  <div class="container py-5">
+    <div class="row g-4">
+
+      {# ── Sidebar: filters ── #}
+      <div class="col-lg-3 wow fadeInUp" data-wow-delay="0.1s">
+
+        {# Search box #}
+        <div class="mb-4">
+          <form action="/products" method="get">
+            <div class="input-group">
+              <input class="form-control border rounded-start" type="text" name="search"
+                placeholder="{{ 'Search products...'|t }}"
+                value="{{ app.request.query.get('search') }}">
+              <button class="btn btn-primary" type="submit">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {# Category filter links #}
+        <div class="product-categories mb-4">
+          <h5 class="fw-bold mb-3 border-bottom pb-2">{{ 'Categories'|t }}</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2">
+              <div class="categories-item d-flex justify-content-between">
+                <a href="/products" class="text-dark text-decoration-none">
+                  <i class="fas fa-layer-group text-secondary me-2"></i>{{ 'All Products'|t }}
+                </a>
+              </div>
+            </li>
+            {# Dynamic categories will be added via exposed filter once taxonomy integration is set up #}
+            {% if exposed %}
+              {{ exposed }}
+            {% endif %}
+          </ul>
+        </div>
+
+        {# Price range (static UI — wire to Views exposed filter if needed) #}
+        <div class="price mb-4">
+          <h5 class="fw-bold mb-3 border-bottom pb-2">{{ 'Price Range'|t }}</h5>
+          <div class="d-flex gap-2 mb-2">
+            <input type="number" class="form-control form-control-sm" placeholder="{{ 'Min'|t }}" min="0" id="price-min">
+            <input type="number" class="form-control form-control-sm" placeholder="{{ 'Max'|t }}" id="price-max">
+          </div>
+          <button class="btn btn-sm btn-outline-primary w-100" id="filter-price">{{ 'Apply'|t }}</button>
+        </div>
+
+        {# Admin shortcut (only for admins) #}
+        <div class="mt-4 d-none d-lg-block">
+          <a href="/node/add/product" class="btn btn-success rounded-pill w-100">
+            <i class="fas fa-plus me-2"></i>{{ 'Add New Product'|t }}
+          </a>
+        </div>
+
+      </div>
+
+      {# ── Main product grid ── #}
+      <div class="col-lg-9">
+
+        {# Sort/count bar #}
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+          <p class="mb-0 text-muted">
+            {% if total_rows is defined %}
+              {{ 'Showing @count products'|t({'@count': total_rows}) }}
+            {% else %}
+              {{ 'All Products'|t }}
+            {% endif %}
+          </p>
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small">{{ 'Sort by:'|t }}</span>
+            <select class="form-select form-select-sm" style="width: auto;">
+              <option>{{ 'Newest First'|t }}</option>
+              <option>{{ 'Price: Low to High'|t }}</option>
+              <option>{{ 'Price: High to Low'|t }}</option>
+            </select>
+          </div>
+        </div>
+
+        {# Product cards — JS appends new products here #}
+        {% if rows %}
+          <div id="products-grid-container" class="row g-4">
+            {{ rows }}
+          </div>
+        {% elseif empty %}
+          <div class="col-12 text-center py-5">
+            <i class="fas fa-box-open fa-4x text-muted mb-4 d-block"></i>
+            <h4 class="text-muted">{{ 'No products found'|t }}</h4>
+            <p>{{ 'Check back soon or add the first product.'|t }}</p>
+            <a href="/node/add/product" class="btn btn-primary rounded-pill mt-2">
+              {{ 'Add a Product'|t }}
+            </a>
+          </div>
+        {% endif %}
+
+        {% if pager %}
+          {# Hidden pager — JS reads next page URL from here #}
+          <div id="products-pager" class="d-none" aria-hidden="true">{{ pager }}</div>
+          {# Scroll sentinel — triggers infinite scroll when visible #}
+          <div id="load-more-sentinel" class="mt-4"></div>
+          {# Small spinner shown while loading #}
+          <div id="load-more-loader" class="text-center py-4" style="display:none;">
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+              <span class="visually-hidden">{{ 'Loading...'|t }}</span>
+            </div>
+            <span class="text-muted small">{{ 'Loading more products...'|t }}</span>
+          </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>

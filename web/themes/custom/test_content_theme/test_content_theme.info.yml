@@ -1,0 +1,20 @@
+name: Test Content Theme
+type: theme
+description: 'Custom theme for the Test Content Type template.'
+package: Custom
+core_version_requirement: ^11
+base theme: false
+
+libraries:
+  - test_content_theme/global-styling
+
+regions:
+  header: Header
+  primary_menu: Primary menu
+  secondary_menu: Secondary menu
+  breadcrumb: Breadcrumb
+  highlighted: Highlighted
+  help: Help
+  content: Content
+  sidebar_first: Sidebar first
+  footer: Footer

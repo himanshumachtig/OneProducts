@@ -1,0 +1,82 @@
+commerce_live_search.check_email:
+  path: '/api/check-email'
+  defaults:
+    _controller: '\Drupal\commerce_live_search\Controller\LiveSearchController::checkEmail'
+    _title: 'Check Email'
+  requirements:
+    _access: 'TRUE'
+  options:
+    no_cache: TRUE
+
+commerce_live_search.search:
+  path: '/api/live-search'
+  defaults:
+    _controller: '\Drupal\commerce_live_search\Controller\LiveSearchController::search'
+    _title: 'Live Search'
+  requirements:
+    _access: 'TRUE'
+  options:
+    no_cache: TRUE
+
+commerce_live_search.user_orders:
+  path: '/user/orders'
+  defaults:
+    _controller: '\Drupal\commerce_live_search\Controller\LiveSearchController::userOrders'
+    _title: 'My Orders'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+commerce_live_search.order_detail:
+  path: '/orders/{commerce_order}'
+  defaults:
+    _controller: '\Drupal\commerce_live_search\Controller\OrderDetailController::detail'
+    _title: 'Order Detail'
+  requirements:
+    _custom_access: '\Drupal\commerce_live_search\Controller\OrderDetailController::access'
+    commerce_order: \d+
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
+
+commerce_live_search.order_cancel:
+  path: '/orders/{commerce_order}/cancel'
+  defaults:
+    _controller: '\Drupal\commerce_live_search\Controller\OrderDetailController::cancelOrder'
+    _title: 'Cancel Order'
+  methods: [POST]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    commerce_order: \d+
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
+
+commerce_live_search.order_refund:
+  path: '/orders/{commerce_order}/refund-request'
+  defaults:
+    _controller: '\Drupal\commerce_live_search\Controller\OrderDetailController::requestRefund'
+    _title: 'Request Refund'
+  methods: [POST]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    commerce_order: \d+
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
+
+commerce_live_search.order_rate:
+  path: '/orders/{commerce_order}/rate-product'
+  defaults:
+    _controller: '\Drupal\commerce_live_search\Controller\OrderDetailController::rateProduct'
+    _title: 'Rate Product'
+  methods: [POST]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    commerce_order: \d+
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order

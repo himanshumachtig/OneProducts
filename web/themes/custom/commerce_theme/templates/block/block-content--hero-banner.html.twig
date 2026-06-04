@@ -1,0 +1,73 @@
+{#
+/**
+ * @file
+ * block-content--hero-banner.html.twig
+ *
+ * Hero Banner block content template.
+ * Renders the field_banner_slides paragraphs as a Bootstrap 5 carousel.
+ *
+ * Available variables:
+ *   block_content               — the block_content entity
+ *   content                     — rendered fields
+ *   content.field_banner_slides — rendered paragraph items (each a banner slide)
+ *
+ * Each slide is rendered by:
+ *   templates/paragraphs/paragraph--banner-slide.html.twig
+ *
+ * To manage slides:
+ *   Admin → Content → Custom blocks → "Homepage Hero Banner" → Edit
+ */
+#}
+
+{# Collect individual rendered paragraph slides from the field #}
+{% set slides = content.field_banner_slides['#items'] ?? [] %}
+
+{% if content.field_banner_slides %}
+
+<div id="heroBannerCarousel"
+     class="carousel slide carousel-fade"
+     data-bs-ride="carousel"
+     data-bs-interval="5000"
+     aria-label="{{ 'Homepage hero banner'|t }}">
+
+  {# ── Indicators — one dot per slide ──────────────────────────────── #}
+  <div class="carousel-indicators">
+    {% for key, item in content.field_banner_slides if key|first != '#' %}
+      <button type="button"
+              data-bs-target="#heroBannerCarousel"
+              data-bs-slide-to="{{ loop.index0 }}"
+              {% if loop.first %}class="active" aria-current="true"{% endif %}
+              aria-label="{{ 'Slide'|t }} {{ loop.index }}">
+      </button>
+    {% endfor %}
+  </div>
+
+  {# ── Slides ───────────────────────────────────────────────────────── #}
+  <div class="carousel-inner">
+    {% for key, item in content.field_banner_slides if key|first != '#' %}
+      <div class="carousel-item{% if loop.first %} active{% endif %}">
+        {{- item -}}
+      </div>
+    {% endfor %}
+  </div>
+
+  {# ── Controls ─────────────────────────────────────────────────────── #}
+  <button class="carousel-control-prev"
+          type="button"
+          data-bs-target="#heroBannerCarousel"
+          data-bs-slide="prev">
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">{{ 'Previous'|t }}</span>
+  </button>
+
+  <button class="carousel-control-next"
+          type="button"
+          data-bs-target="#heroBannerCarousel"
+          data-bs-slide="next">
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">{{ 'Next'|t }}</span>
+  </button>
+
+</div>{# /#heroBannerCarousel #}
+
+{% endif %}

@@ -1,0 +1,9 @@
+name: 'Product Enhancements'
+type: module
+description: 'Adds image gallery, color swatches, and size selector to Commerce products. Installs Size/Color attributes, variation image field, and product gallery field.'
+core_version_requirement: ^10 || ^11
+package: Custom
+dependencies:
+  - drupal:field
+  - drupal:image
+  - commerce_product:commerce_product

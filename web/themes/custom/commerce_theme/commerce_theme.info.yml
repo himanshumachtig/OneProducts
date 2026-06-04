@@ -1,0 +1,39 @@
+name: Commerce Theme
+type: theme
+description: 'Custom Bootstrap 5 ecommerce theme for Drupal Commerce.'
+package: Custom
+core_version_requirement: ^11
+base theme: stable9
+
+libraries:
+  - commerce_theme/global-styling
+  - commerce_theme/global-scripts
+  - commerce_theme/live-search
+
+libraries-override:
+  core/drupal.dialog.ajax: false
+
+regions:
+  # ── Top of page ──────────────────────────────────────────────────
+  header:         'Header'          # Topbar area (admin/utility blocks)
+  primary_menu:   'Primary Menu'    # Main navigation
+  secondary_menu: 'Secondary Menu'  # Account menu (kept for existing blocks)
+  # ── Page body ────────────────────────────────────────────────────
+  hero:           'Hero / Banner'   # Full-width banner; carousel on homepage
+  highlighted:    'Highlighted'     # Drupal messages, local tasks, actions
+  help:           'Help'            # Drupal help text
+  content:        'Content'         # Main page content (required)
+  sidebar_first:  'Sidebar First'
+  sidebar_second: 'Sidebar Second'
+  breadcrumb:     'Breadcrumb'
+  # ── Footer ───────────────────────────────────────────────────────
+  footer_top:     'Footer Top'      # Footer info columns / newsletter
+  footer_menu:    'Footer Menu'     # Footer navigation links
+  footer_bottom:  'Footer Bottom'   # Copyright / bottom bar
+
+features:
+  - logo
+  - favicon
+  - node_user_picture
+  - comment_user_picture
+  - comment_user_verification

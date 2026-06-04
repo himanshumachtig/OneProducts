@@ -1,0 +1,40 @@
+{#
+  Template for News content type - full page view.
+#}
+<article{{ attributes.addClass('news-full') }}>
+
+  {{ title_prefix }}
+  {% if not page %}
+    <h2{{ title_attributes.addClass('news-full__title') }}>
+      <a href="{{ url }}" rel="bookmark">{{ label }}</a>
+    </h2>
+  {% else %}
+    <h1{{ title_attributes.addClass('news-full__title') }}>{{ label }}</h1>
+  {% endif %}
+  {{ title_suffix }}
+
+  {% if display_submitted %}
+    <div class="news-full__meta">
+      {{ 'Published by'|t }} {{ author_name }} {{ 'on'|t }} {{ date }}
+    </div>
+  {% endif %}
+
+  <div{{ content_attributes.addClass('news-full__content') }}>
+
+    {% if content.field_news_image %}
+      <div class="news-full__image">
+        {{ content.field_news_image }}
+      </div>
+    {% endif %}
+
+    {% if content.body %}
+      <div class="news-full__body">
+        {{ content.body }}
+      </div>
+    {% endif %}
+
+    {{ content|without('field_news_image', 'body') }}
+
+  </div>
+
+</article>

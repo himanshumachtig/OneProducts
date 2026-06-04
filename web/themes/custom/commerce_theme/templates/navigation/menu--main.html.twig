@@ -1,0 +1,59 @@
+{#
+/**
+ * @file menu--main.html.twig
+ *
+ * Renders the Main navigation menu with Bootstrap dropdown support.
+ *
+ * MANAGE THIS MENU FROM:
+ *   Admin → Structure → Menus → Main navigation → Add link
+ *
+ *   - Add any link (Blog, Electronics, About, Contact...) → appears in navbar
+ *   - Add a child link under any parent → appears as a dropdown
+ *   - Reorder links by dragging → order updates on frontend
+ *   - Disable a link → disappears from navbar
+ *
+ * No code changes needed — everything is managed from admin.
+ */
+#}
+
+<ul class="navbar-nav">
+  {% for item in items %}
+    {% set has_children = item.below is not empty %}
+
+    <li class="nav-item{{ has_children ? ' cat-dropdown' : '' }}{{ item.in_active_trail ? ' active' : '' }}">
+
+      {# Parent link — always navigates on click #}
+      <a href="{{ item.url }}"
+         class="nav-link{{ item.in_active_trail ? ' active' : '' }}">
+        {{ item.title }}
+        {% if has_children %}
+          <i class="fas fa-chevron-down fa-xs ms-1 cat-arrow"></i>
+        {% endif %}
+      </a>
+
+      {% if has_children %}
+
+        {# Mobile toggle button — opens/closes submenu without navigating #}
+        <button class="cat-mobile-toggle d-lg-none"
+                type="button"
+                aria-label="{{ 'Toggle submenu'|t }}">
+          <i class="fas fa-chevron-down fa-xs"></i>
+        </button>
+
+        {# Dropdown submenu #}
+        <ul class="dropdown-menu cat-submenu">
+          {% for child in item.below %}
+            <li>
+              <a href="{{ child.url }}"
+                 class="dropdown-item{{ child.in_active_trail ? ' active' : '' }}">
+                <span class="cat-dot" aria-hidden="true">●</span>
+                {{ child.title }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>

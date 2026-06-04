@@ -1,0 +1,18 @@
+image_search.page:
+  path: '/image-search'
+  defaults:
+    _controller: '\Drupal\image_search\Controller\ImageSearchController::page'
+    _title: 'Search by Image'
+  requirements:
+    _access: 'TRUE'
+
+image_search.api:
+  path: '/image-search/api'
+  defaults:
+    _controller: '\Drupal\image_search\Controller\ImageSearchController::search'
+    _title: 'Image Search API'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    no_cache: TRUE

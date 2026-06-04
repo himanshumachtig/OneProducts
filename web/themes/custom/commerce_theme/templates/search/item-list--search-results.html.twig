@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * Override item list for search results — uses Bootstrap grid row
+ * instead of <ul> so search-result cards sit in a responsive grid.
+ */
+#}
+{% if items %}
+  <div class="row g-4 search-results-grid">
+    {%- for item in items -%}
+      {{ item.value }}
+    {%- endfor -%}
+  </div>
+{% else %}
+  <div class="text-center py-5">
+    <i class="fas fa-search fa-4x text-muted mb-3 d-block"></i>
+    <h4>{{ 'No results found'|t }}</h4>
+    <p class="text-muted">{{ 'Try different keywords or browse our shop.'|t }}</p>
+    <a href="{{ path('view.product_catalog.page_shop') }}" class="btn btn-primary rounded-pill mt-2">
+      {{ 'Browse Shop'|t }}
+    </a>
+  </div>
+{% endif %}

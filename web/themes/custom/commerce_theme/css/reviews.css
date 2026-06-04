@@ -1,0 +1,150 @@
+/* ── Review Form wrapper ─────────────────────────────────────────────────── */
+.review-form-wrapper {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 28px 28px 20px;
+  border: 1px solid #e9ecef;
+}
+.review-form-wrapper h6 {
+  font-size: 1rem;
+  letter-spacing: .02em;
+}
+
+/* Hide native rating dropdown (replaced by star picker via JS) */
+.comment-product-review-form .field--name-field-rating,
+.comment-product-review-form [id^="edit-field-rating"] {
+  display: none !important;
+}
+
+/* Hide Preview button */
+.comment-product-review-form [id^="edit-preview"],
+.comment-product-review-form input[value="Preview"] {
+  display: none !important;
+}
+
+/* Hide author / langcode fields */
+.comment-product-review-form .form-item-name,
+.comment-product-review-form [id^="edit-langcode"] {
+  display: none !important;
+}
+
+/* ── Interactive star picker ─────────────────────────────────────────────── */
+.star-picker-label {
+  font-size: .85rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 6px;
+  display: block;
+}
+.star-picker {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.star-picker input[type="radio"] { display: none; }
+.star-picker label {
+  font-size: 2.2rem;
+  color: #dee2e6;
+  cursor: pointer;
+  transition: color .12s, transform .1s;
+  line-height: 1;
+  padding: 0 2px;
+}
+.star-picker label:hover,
+.star-picker label:hover ~ label,
+.star-picker input:checked ~ label {
+  color: #ffc107;
+}
+.star-picker label:hover { transform: scale(1.2); }
+.star-picker-error {
+  color: #dc3545;
+  font-size: .8rem;
+  margin-bottom: 12px;
+  display: none;
+}
+
+/* ── Form fields ─────────────────────────────────────────────────────────── */
+.review-form-wrapper .form-text,
+.review-form-wrapper textarea,
+.review-form-wrapper .form-control {
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  padding: 10px 14px;
+  font-size: .9rem;
+  transition: border-color .2s, box-shadow .2s;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+}
+.review-form-wrapper .form-text:focus,
+.review-form-wrapper textarea:focus {
+  border-color: #f28b00;
+  box-shadow: 0 0 0 3px rgba(242,139,0,.15);
+  outline: none;
+}
+.review-form-wrapper label {
+  font-size: .85rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 2px;
+  display: block;
+}
+.review-form-wrapper .form-item { margin-bottom: 16px; }
+.review-form-wrapper .form-actions { margin-top: 8px; }
+
+/* Submit button */
+.review-form-wrapper .form-submit,
+.review-form-wrapper input[type="submit"] {
+  background: #f28b00;
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 10px 32px;
+  font-weight: 600;
+  font-size: .9rem;
+  cursor: pointer;
+  transition: background .2s, transform .1s;
+}
+.review-form-wrapper .form-submit:hover,
+.review-form-wrapper input[type="submit"]:hover {
+  background: #d97b00;
+  transform: translateY(-1px);
+}
+
+/* ── Review Cards ────────────────────────────────────────────────────────── */
+.review-card {
+  border: 1px solid #e9ecef !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  margin-bottom: 14px !important;
+  background: #fff;
+  transition: box-shadow .2s;
+}
+.review-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+.review-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f28b00, #ff6b35);
+  color: #fff;
+  font-weight: 700;
+  font-size: .9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.review-stars .fa-star { font-size: .85rem; }
+.review-body { color: #555; font-size: .9rem; line-height: 1.6; }
+.review-subject { font-weight: 600; font-size: .95rem; color: #212529; }
+.review-meta { font-size: .78rem; color: #adb5bd; }
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.no-reviews-msg {
+  text-align: center;
+  padding: 32px 16px;
+  color: #adb5bd;
+}
+.no-reviews-msg i { font-size: 2.5rem; display: block; margin-bottom: 8px; }

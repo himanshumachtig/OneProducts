@@ -1,0 +1,8 @@
+services:
+  commerce_auth_cart.cart_access_subscriber:
+    class: Drupal\commerce_auth_cart\EventSubscriber\CartAccessSubscriber
+    arguments:
+      - '@current_user'
+      - '@redirect.destination'
+    tags:
+      - { name: event_subscriber }

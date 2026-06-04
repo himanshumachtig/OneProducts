@@ -1,0 +1,33 @@
+custom_contact_form.form:
+  path: '/contact-us'
+  defaults:
+    _form: '\Drupal\custom_contact_form\Form\ContactForm'
+    _title: 'Contact Us'
+  requirements:
+    _access: 'TRUE'
+
+custom_contact_form.submissions:
+  path: '/admin/reports/contact-submissions'
+  defaults:
+    _controller: '\Drupal\custom_contact_form\Controller\SubmissionsController::listSubmissions'
+    _title: 'Contact Form Submissions'
+  requirements:
+    _permission: 'access administration pages'
+
+custom_contact_form.edit:
+  path: '/admin/reports/contact-submissions/{id}/edit'
+  defaults:
+    _form: '\Drupal\custom_contact_form\Form\EditSubmissionForm'
+    _title: 'Edit Submission'
+  requirements:
+    _permission: 'access administration pages'
+    id: \d+
+
+custom_contact_form.delete:
+  path: '/admin/reports/contact-submissions/{id}/delete'
+  defaults:
+    _form: '\Drupal\custom_contact_form\Form\DeleteSubmissionForm'
+    _title: 'Delete Submission'
+  requirements:
+    _permission: 'access administration pages'
+    id: \d+

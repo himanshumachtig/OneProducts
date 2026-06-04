@@ -1,0 +1,130 @@
+{#
+/**
+ * @file page--front.html.twig
+ * Homepage template. Inherits the HTML document from html.html.twig.
+ *
+ * Regions used:
+ *   page.hero        — hero carousel block (place via Block Layout admin)
+ *   page.highlighted — Drupal messages
+ *   page.content     — featured products view or any homepage blocks
+ *
+ * The services strip below the hero is a static presentational row.
+ * To make it editable, place a Custom Block in page.content.
+ */
+#}
+
+{# ── Loading spinner ── #}
+<div id="spinner"
+     class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center"
+     style="z-index:9999;">
+  <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status">
+    <span class="visually-hidden">{{ 'Loading...'|t }}</span>
+  </div>
+</div>
+
+<div id="page-wrapper">
+
+  {# ── SITE HEADER ── #}
+  {% include directory ~ '/templates/layout/partials/site-header.html.twig' %}
+
+  <main id="main-content" role="main">
+
+    {# ── HERO REGION ─────────────────────────────────────────────────────
+       Place your "Homepage Hero" custom block here via:
+       Admin → Structure → Block Layout → Hero / Banner region.
+       The block body can contain any HTML (carousel, static banner, etc.).
+    ───────────────────────────────────────────────────────────────────── #}
+    {% if page.hero %}
+      <section id="hero-region" aria-label="{{ 'Homepage banner'|t }}">
+        {{ page.hero }}
+      </section>
+    {% endif %}
+
+    {# ── SERVICES STRIP ───────────────────────────────────────────────────
+       Six feature highlights below the hero banner.
+       To make this manageable from admin, replace with a Views block
+       or a Custom Block placed in the Content region.
+    ───────────────────────────────────────────────────────────────────── #}
+    <div class="container-fluid px-0">
+      <div class="row g-0">
+        {% for item in [
+          {'icon': 'fa-sync-alt',       'title': 'Free Return',     'desc': '30 days money back guarantee'},
+          {'icon': 'fa-paper-plane',    'title': 'Free Shipping',   'desc': 'Free shipping on all orders'},
+          {'icon': 'fa-life-ring',      'title': 'Support 24/7',    'desc': 'We support online 24 hours a day'},
+          {'icon': 'fa-credit-card',    'title': 'Gift Cards',      'desc': 'Receive a gift on orders over $50'},
+          {'icon': 'fa-lock',           'title': 'Secure Payment',  'desc': 'We value your security'},
+          {'icon': 'fa-headset',        'title': 'Online Service',  'desc': 'Free return products in 30 days'}
+        ] %}
+          <div class="col-6 col-md-4 col-lg-2 border-start border-end wow fadeInUp" data-wow-delay="0.1s">
+            <div class="p-4">
+              <div class="d-inline-flex align-items-center">
+                <i class="fa {{ item.icon }} fa-2x text-primary"></i>
+                <div class="ms-4">
+                  <h6 class="text-uppercase mb-2">{{ item.title|t }}</h6>
+                  <p class="mb-0">{{ item.desc|t }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── DRUPAL MESSAGES ── #}
+    <div class="highlighted">{{ page.highlighted }}</div>
+
+    {# ── CATEGORY PRODUCT SECTIONS ────────────────────────────────────────
+       One section per top-level product category.
+       Products are rendered via the homepage_category_products View
+       using the teaser view mode (commerce-product--default--teaser.html.twig).
+    ───────────────────────────────────────────────────────────────────── #}
+    {% if category_sections %}
+      {% for section in category_sections %}
+        <div class="container-fluid py-5 category-section" id="section-{{ section.slug }}">
+          <div class="container">
+
+            {# Section header #}
+            <div class="d-flex align-items-end justify-content-between mb-4 pb-2"
+                 style="border-bottom: 2px solid var(--bs-primary);">
+              <div>
+                <p class="text-muted text-uppercase fw-semibold mb-1"
+                   style="font-size:.7rem;letter-spacing:1.5px;">
+                  {{ 'Featured Collection'|t }}
+                </p>
+                <h2 class="fw-bold mb-0" style="font-size:1.6rem;">{{ section.label }}</h2>
+              </div>
+              <a href="{{ section.url }}"
+                 class="btn btn-outline-primary rounded-pill px-4 mb-1"
+                 style="font-size:.85rem;">
+                {{ 'View All'|t }} <i class="fas fa-arrow-right ms-2"></i>
+              </a>
+            </div>
+
+            {# Product grid — rendered by Views + teaser template #}
+            {{ section.products_view }}
+
+          </div>
+        </div>
+        {% if not loop.last %}
+          <hr class="my-0 border-0" style="border-top:1px solid rgba(0,0,0,.05)!important;">
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    {# ── MAIN CONTENT REGION ──────────────────────────────────────────────
+       Place any additional homepage blocks here via Block Layout → Content.
+    ───────────────────────────────────────────────────────────────────── #}
+    {% if page.content %}
+      <div class="layout-container">
+        {{ page.content }}
+      </div>
+    {% endif %}
+
+  </main>
+
+  {# ── SITE FOOTER ── #}
+  {% include directory ~ '/templates/layout/partials/site-footer.html.twig' %}
+
+</div>{# /#page-wrapper #}
+
+{{ attach_library('commerce_theme/quick-view') }}

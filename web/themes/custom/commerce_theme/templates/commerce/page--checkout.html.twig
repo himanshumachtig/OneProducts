@@ -1,0 +1,60 @@
+{#
+/**
+ * @file page--checkout.html.twig
+ * Checkout page.
+ */
+#}
+
+{# ── Loading spinner ── #}
+<div id="spinner"
+     class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center"
+     style="z-index:9999;">
+  <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status">
+    <span class="visually-hidden">{{ 'Loading...'|t }}</span>
+  </div>
+</div>
+
+<div id="page-wrapper">
+
+  {% include directory ~ '/templates/layout/partials/site-header.html.twig' %}
+
+  <main id="main-content" role="main">
+
+    <div class="container-fluid page-header py-5">
+      <h1 class="text-center text-white display-6">{{ 'Checkout'|t }}</h1>
+      <ol class="breadcrumb justify-content-center mb-0">
+        <li class="breadcrumb-item"><a href="{{ path('<front>') }}">{{ 'Home'|t }}</a></li>
+        <li class="breadcrumb-item">
+          <a href="{{ path('commerce_cart.page') }}">{{ 'Cart'|t }}</a>
+        </li>
+        <li class="breadcrumb-item active text-white">{{ 'Checkout'|t }}</li>
+      </ol>
+    </div>
+
+    {# Checkout progress indicator #}
+    <div class="container py-3 border-bottom">
+      <div class="d-flex justify-content-center align-items-center gap-3">
+        <span class="badge bg-primary rounded-pill">1</span>
+        <span>{{ 'Cart'|t }}</span>
+        <span class="text-muted">›</span>
+        <span class="badge bg-secondary rounded-pill">2</span>
+        <span class="text-muted">{{ 'Details'|t }}</span>
+        <span class="text-muted">›</span>
+        <span class="badge bg-secondary rounded-pill">3</span>
+        <span class="text-muted">{{ 'Payment'|t }}</span>
+      </div>
+    </div>
+
+    <div class="highlighted">{{ page.highlighted }}</div>
+
+    <div class="container-fluid py-5">
+      <div class="container py-5">
+        {{ page.content }}
+      </div>
+    </div>
+
+  </main>
+
+  {% include directory ~ '/templates/layout/partials/site-footer.html.twig' %}
+
+</div>

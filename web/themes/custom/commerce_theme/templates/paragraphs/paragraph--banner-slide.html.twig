@@ -1,0 +1,157 @@
+{#
+/**
+ * @file
+ * paragraph--banner-slide.html.twig
+ *
+ * Renders a single hero banner slide paragraph.
+ *
+ * Paragraph fields (all editable from Admin → Content → Custom blocks):
+ * ┌─────────────────────────────┬───────────────────────────────────────────┐
+ * │ Field                       │ Description                               │
+ * ├─────────────────────────────┼───────────────────────────────────────────┤
+ * │ field_slide_title           │ Main heading (required)                   │
+ * │ field_slide_subtitle        │ Eyebrow label above heading (optional)    │
+ * │ field_slide_description     │ Body text below heading (optional)        │
+ * │ field_slide_image           │ Desktop banner image (optional)           │
+ * │ field_slide_mobile_image    │ Mobile banner image (optional)            │
+ * │ field_slide_btn_text        │ Primary button label (optional)           │
+ * │ field_slide_btn_link        │ Primary button URL (optional)             │
+ * │ field_slide_btn2_text       │ Secondary button label (optional)         │
+ * │ field_slide_btn2_link       │ Secondary button URL (optional)           │
+ * │ field_slide_bg_color        │ CSS gradient / colour string (optional)   │
+ * │ field_slide_accent          │ Bootstrap colour: primary/warning/info    │
+ * └─────────────────────────────┴───────────────────────────────────────────┘
+ *
+ * Available variables:
+ *   paragraph     — the paragraph entity (raw field values via .value)
+ *   content       — rendered fields (use for image: content.field_slide_image)
+ *   attributes    — HTML attributes for the wrapper element
+ */
+#}
+
+{# ── Extract raw field values from the paragraph entity ────────────────────── #}
+{% set title       = paragraph.field_slide_title.value %}
+{% set subtitle    = paragraph.field_slide_subtitle.value %}
+{% set description = paragraph.field_slide_description.value %}
+{% set btn_text    = paragraph.field_slide_btn_text.value %}
+{% set btn_url     = paragraph.field_slide_btn_link.0.url %}
+{% set btn2_text   = paragraph.field_slide_btn2_text.value %}
+{% set btn2_url    = paragraph.field_slide_btn2_link.0.url %}
+{% set bg_color    = paragraph.field_slide_bg_color.value %}
+{% set accent      = paragraph.field_slide_accent.value|default('primary') %}
+{% set has_image   = paragraph.field_slide_image.entity is not empty %}
+{% set has_mobile  = paragraph.field_slide_mobile_image.entity is not empty %}
+
+{# ── Slide wrapper — full-width, background from field ──────────────────────── #}
+<div class="banner-slide w-100"
+     {% if bg_color %}style="background: {{ bg_color }};"{% endif %}>
+
+  <div class="container">
+    <div class="row align-items-center" style="min-height: 560px;">
+
+      {# ════════════════════════════════════════════════════════════════════
+         LEFT COLUMN — text content
+         ════════════════════════════════════════════════════════════════════ #}
+      <div class="col-12 col-lg-6 py-5 order-2 order-lg-1">
+
+        {# Eyebrow / subtitle #}
+        {% if subtitle %}
+          <p class="banner-slide__eyebrow text-{{ accent }} text-uppercase fw-bold mb-2">
+            <span class="banner-slide__eyebrow-dot me-2" aria-hidden="true">●</span>
+            {{ subtitle }}
+          </p>
+        {% endif %}
+
+        {# Main heading #}
+        {% if title %}
+          <h1 class="banner-slide__title display-4 text-white fw-bold mb-3 lh-sm">
+            {{ title }}
+          </h1>
+        {% endif %}
+
+        {# Description #}
+        {% if description %}
+          <p class="banner-slide__description text-white-50 fs-5 mb-4" style="max-width: 480px;">
+            {{ description }}
+          </p>
+        {% endif %}
+
+        {# Buttons #}
+        {% if btn_text or btn2_text %}
+          <div class="banner-slide__buttons d-flex flex-wrap gap-3">
+
+            {% if btn_text and btn_url %}
+              <a href="{{ btn_url }}"
+                 class="btn btn-{{ accent }} btn-lg rounded-pill px-5 fw-semibold">
+                <i class="fas fa-shopping-bag me-2" aria-hidden="true"></i>
+                {{ btn_text }}
+              </a>
+            {% endif %}
+
+            {% if btn2_text and btn2_url %}
+              <a href="{{ btn2_url }}"
+                 class="btn btn-outline-light btn-lg rounded-pill px-4">
+                {{ btn2_text }}
+              </a>
+            {% endif %}
+
+          </div>
+        {% endif %}
+
+      </div>{# /.col left #}
+
+      {# ════════════════════════════════════════════════════════════════════
+         RIGHT COLUMN — image (desktop / mobile) or decorative placeholder
+         ════════════════════════════════════════════════════════════════════ #}
+      <div class="col-12 col-lg-6 py-4 py-lg-5 text-center order-1 order-lg-2
+                  d-flex align-items-center justify-content-center">
+
+        {% if has_image or has_mobile %}
+
+          {# Desktop image — shown lg+ #}
+          {% if has_image %}
+            <div class="banner-slide__image d-none d-lg-block"
+                 style="max-width:420px;filter:drop-shadow(0 20px 60px rgba(0,0,0,.4));">
+              {{ content.field_slide_image }}
+            </div>
+          {% endif %}
+
+          {# Mobile image — shown xs–md. Falls back to desktop image if no mobile image set #}
+          {% if has_mobile %}
+            <div class="banner-slide__image-mobile d-lg-none"
+                 style="max-width:260px;filter:drop-shadow(0 10px 30px rgba(0,0,0,.3));">
+              {{ content.field_slide_mobile_image }}
+            </div>
+          {% elseif has_image %}
+            <div class="banner-slide__image-mobile d-lg-none"
+                 style="max-width:260px;filter:drop-shadow(0 10px 30px rgba(0,0,0,.3));">
+              {{ content.field_slide_image }}
+            </div>
+          {% endif %}
+
+        {% else %}
+
+          {#
+            No image uploaded yet — render a decorative accent circle as
+            a visual placeholder until admin uploads an image.
+            The circle references the accent Bootstrap CSS variable.
+          #}
+          <div class="banner-slide__placeholder d-none d-lg-flex align-items-center justify-content-center mx-auto"
+               style="width: 380px; height: 380px;
+                      background: rgba(255,255,255,.06);
+                      border-radius: 50%;">
+            <i class="fas fa-image text-{{ accent }}"
+               style="font-size: 100px; opacity: .4;"
+               aria-hidden="true"
+               title="{{ 'Upload an image via Admin → Content → Custom blocks'|t }}">
+            </i>
+          </div>
+
+        {% endif %}
+
+      </div>{# /.col right #}
+
+    </div>{# /.row #}
+  </div>{# /.container #}
+
+</div>{# /.banner-slide #}

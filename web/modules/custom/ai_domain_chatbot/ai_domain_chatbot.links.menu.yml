@@ -1,0 +1,20 @@
+ai_domain_chatbot.settings:
+  title: 'AI Domain Chatbot'
+  description: 'Configure domains, crawl websites and manage indexed content for the AI chatbot.'
+  route_name: ai_domain_chatbot.settings
+  parent: system.admin_config
+  weight: 10
+
+ai_domain_chatbot.crawl:
+  title: 'Crawl Websites'
+  description: 'Select domains to crawl and index content.'
+  route_name: ai_domain_chatbot.crawl
+  parent: ai_domain_chatbot.settings
+  weight: 10
+
+ai_domain_chatbot.indexed:
+  title: 'Indexed Pages'
+  description: 'View, search and delete indexed pages.'
+  route_name: ai_domain_chatbot.indexed
+  parent: ai_domain_chatbot.settings
+  weight: 20

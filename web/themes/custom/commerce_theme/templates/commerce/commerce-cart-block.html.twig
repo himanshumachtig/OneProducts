@@ -1,0 +1,36 @@
+{#
+/**
+ * @file
+ * Mini cart block template.
+ *
+ * Variables:
+ * - count: Number of items in cart.
+ * - count_text: Text representation of count.
+ * - url: URL to the cart page.
+ * - content: Rendered cart contents.
+ * - icon: Cart icon.
+ */
+#}
+<div class="commerce-cart-block dropdown">
+  <a href="{{ url }}" class="text-muted d-flex align-items-center justify-content-center dropdown-toggle"
+    data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="rounded-circle btn-md-square border position-relative">
+      <i class="fas fa-shopping-cart"></i>
+      {% if count > 0 %}
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+          {{ count }}
+        </span>
+      {% endif %}
+    </span>
+    <span class="text-dark ms-2">{{ count_text }}</span>
+  </a>
+  {% if count > 0 %}
+    <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 300px;">
+      {{ content }}
+      <div class="mt-3 d-grid gap-2">
+        <a href="{{ url }}" class="btn btn-primary rounded-pill">{{ 'View Cart'|t }}</a>
+        <a href="/checkout" class="btn btn-secondary rounded-pill">{{ 'Checkout'|t }}</a>
+      </div>
+    </div>
+  {% endif %}
+</div>

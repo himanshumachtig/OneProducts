@@ -1,0 +1,255 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for Product Enhancements module.
+ *
+ * Sets up:
+ *  - Size product attribute (S, M, L, XL, XXL, XXXL)
+ *  - Color product attribute (with a field_color_hex on each value)
+ *  - field_variation_images on all product variation types (multi-value image)
+ *  - field_product_gallery on all product types (multi-value image)
+ */
+
+use Drupal\commerce_product\Entity\ProductAttribute;
+use Drupal\commerce_product\Entity\ProductAttributeValue;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Implements hook_install().
+ */
+function product_enhancements_install() {
+  _product_enhancements_create_size_attribute();
+  _product_enhancements_create_color_attribute();
+  _product_enhancements_add_variation_images_field();
+  _product_enhancements_add_product_gallery_field();
+}
+
+/**
+ * Creates the Size product attribute and adds it to all variation types.
+ */
+function _product_enhancements_create_size_attribute(): void {
+  if (ProductAttribute::load('size')) {
+    return;
+  }
+
+  $attribute = ProductAttribute::create([
+    'id' => 'size',
+    'label' => 'Size',
+  ]);
+  $attribute->save();
+
+  $sizes = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+  foreach ($sizes as $weight => $size_label) {
+    if (!_product_enhancements_attribute_value_exists('size', $size_label)) {
+      ProductAttributeValue::create([
+        'attribute' => 'size',
+        'name' => $size_label,
+        'weight' => $weight,
+      ])->save();
+    }
+  }
+
+  _product_enhancements_add_attribute_to_all_variation_types($attribute);
+}
+
+/**
+ * Creates the Color product attribute and adds a hex-code field to its values.
+ */
+function _product_enhancements_create_color_attribute(): void {
+  $attribute = ProductAttribute::load('color');
+  if (!$attribute) {
+    $attribute = ProductAttribute::create([
+      'id' => 'color',
+      'label' => 'Color',
+    ]);
+    $attribute->save();
+    _product_enhancements_add_attribute_to_all_variation_types($attribute);
+  }
+
+  // Add field_color_hex to the color attribute value entity so admins can
+  // store a CSS hex code (e.g. #FF0000) next to each color name.
+  $storage = FieldStorageConfig::loadByName('commerce_product_attribute_value', 'field_color_hex');
+  if (!$storage) {
+    $storage = FieldStorageConfig::create([
+      'field_name' => 'field_color_hex',
+      'entity_type' => 'commerce_product_attribute_value',
+      'type' => 'string',
+      'cardinality' => 1,
+      'settings' => ['max_length' => 7],
+    ]);
+    $storage->save();
+  }
+
+  if (!FieldConfig::loadByName('commerce_product_attribute_value', 'color', 'field_color_hex')) {
+    FieldConfig::create([
+      'field_storage' => $storage,
+      'bundle' => 'color',
+      'label' => 'Color Hex Code',
+      'description' => 'CSS hex code, e.g. #FF0000. Used to render the color swatch on the product page.',
+      'required' => FALSE,
+    ])->save();
+
+    \Drupal::service('entity_display.repository')
+      ->getFormDisplay('commerce_product_attribute_value', 'color')
+      ->setComponent('field_color_hex', [
+        'type' => 'string_textfield',
+        'weight' => 10,
+        'settings' => ['size' => 8, 'placeholder' => '#FF0000'],
+      ])
+      ->save();
+  }
+}
+
+/**
+ * Adds field_variation_images (multi-value image) to all product variation types.
+ */
+function _product_enhancements_add_variation_images_field(): void {
+  $storage = FieldStorageConfig::loadByName('commerce_product_variation', 'field_variation_images');
+  if (!$storage) {
+    $storage = FieldStorageConfig::create([
+      'field_name' => 'field_variation_images',
+      'entity_type' => 'commerce_product_variation',
+      'type' => 'image',
+      'cardinality' => -1,
+    ]);
+    $storage->save();
+  }
+
+  $variation_types = \Drupal::entityTypeManager()
+    ->getStorage('commerce_product_variation_type')
+    ->loadMultiple();
+
+  $display_repo = \Drupal::service('entity_display.repository');
+
+  foreach ($variation_types as $vt) {
+    if (FieldConfig::loadByName('commerce_product_variation', $vt->id(), 'field_variation_images')) {
+      continue;
+    }
+
+    FieldConfig::create([
+      'field_storage' => $storage,
+      'bundle' => $vt->id(),
+      'label' => 'Color Images',
+      'description' => 'Upload images specific to this color variant. These replace the gallery when this color is selected.',
+      'required' => FALSE,
+      'settings' => [
+        'file_extensions' => 'png gif jpg jpeg webp',
+        'alt_field' => TRUE,
+        'alt_field_required' => FALSE,
+        'max_filesize' => '5 MB',
+        'max_resolution' => '',
+        'min_resolution' => '',
+        'default_image' => ['uuid' => '', 'alt' => '', 'title' => '', 'width' => NULL, 'height' => NULL],
+      ],
+    ])->save();
+
+    $display_repo->getFormDisplay('commerce_product_variation', $vt->id())
+      ->setComponent('field_variation_images', [
+        'type' => 'image_image',
+        'weight' => 10,
+        'settings' => [
+          'preview_image_style' => 'thumbnail',
+          'progress_indicator' => 'throbber',
+        ],
+      ])
+      ->save();
+
+    $display_repo->getViewDisplay('commerce_product_variation', $vt->id(), 'default')
+      ->setComponent('field_variation_images', [
+        'type' => 'image',
+        'weight' => 10,
+        'label' => 'hidden',
+        'settings' => ['image_style' => 'large', 'image_link' => ''],
+      ])
+      ->save();
+  }
+}
+
+/**
+ * Adds field_product_gallery (multi-value image) to all product types.
+ */
+function _product_enhancements_add_product_gallery_field(): void {
+  $storage = FieldStorageConfig::loadByName('commerce_product', 'field_product_gallery');
+  if (!$storage) {
+    $storage = FieldStorageConfig::create([
+      'field_name' => 'field_product_gallery',
+      'entity_type' => 'commerce_product',
+      'type' => 'image',
+      'cardinality' => -1,
+    ]);
+    $storage->save();
+  }
+
+  $product_types = \Drupal::entityTypeManager()
+    ->getStorage('commerce_product_type')
+    ->loadMultiple();
+
+  $display_repo = \Drupal::service('entity_display.repository');
+
+  foreach ($product_types as $pt) {
+    if (FieldConfig::loadByName('commerce_product', $pt->id(), 'field_product_gallery')) {
+      continue;
+    }
+
+    FieldConfig::create([
+      'field_storage' => $storage,
+      'bundle' => $pt->id(),
+      'label' => 'Product Gallery Images',
+      'description' => 'Additional images shown in the thumbnail slider (2–3 recommended). Shown when no color variant is selected.',
+      'required' => FALSE,
+      'settings' => [
+        'file_extensions' => 'png gif jpg jpeg webp',
+        'alt_field' => TRUE,
+        'alt_field_required' => FALSE,
+        'max_filesize' => '5 MB',
+        'max_resolution' => '',
+        'min_resolution' => '',
+        'default_image' => ['uuid' => '', 'alt' => '', 'title' => '', 'width' => NULL, 'height' => NULL],
+      ],
+    ])->save();
+
+    $display_repo->getFormDisplay('commerce_product', $pt->id())
+      ->setComponent('field_product_gallery', [
+        'type' => 'image_image',
+        'weight' => 5,
+        'settings' => [
+          'preview_image_style' => 'thumbnail',
+          'progress_indicator' => 'throbber',
+        ],
+      ])
+      ->save();
+  }
+}
+
+/**
+ * Adds the given attribute to all existing product variation types.
+ */
+function _product_enhancements_add_attribute_to_all_variation_types(ProductAttribute $attribute): void {
+  /** @var \Drupal\commerce_product\ProductAttributeFieldManagerInterface $attr_field_manager */
+  $attr_field_manager = \Drupal::service('commerce_product.attribute_field_manager');
+
+  $variation_types = \Drupal::entityTypeManager()
+    ->getStorage('commerce_product_variation_type')
+    ->loadMultiple();
+
+  foreach ($variation_types as $vt) {
+    try {
+      $attr_field_manager->createField($attribute, $vt->id());
+    }
+    catch (\Exception $e) {
+      // Attribute field may already exist — ignore.
+    }
+  }
+}
+
+/**
+ * Returns TRUE if an attribute value with the given name already exists.
+ */
+function _product_enhancements_attribute_value_exists(string $attribute_id, string $name): bool {
+  $values = \Drupal::entityTypeManager()
+    ->getStorage('commerce_product_attribute_value')
+    ->loadByProperties(['attribute' => $attribute_id, 'name' => $name]);
+  return !empty($values);
+}

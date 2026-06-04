@@ -1,0 +1,39 @@
+{#
+/**
+ * @file taxonomy-term--product-category.html.twig
+ * Content-only template for product_category taxonomy terms.
+ * Header and footer are handled by page--taxonomy--term.html.twig.
+ *
+ * Variables:
+ *   term                   — the taxonomy term entity
+ *   category_products_view — render array from homepage_category_products view
+ */
+#}
+
+{# ── Page banner ── #}
+<div class="container-fluid bg-light py-4 mb-0 border-bottom">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ path('<front>') }}">{{ 'Home'|t }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ term.label() }}</li>
+      </ol>
+    </nav>
+    <h1 class="fw-bold mb-0" style="font-size:1.8rem;">{{ term.label() }}</h1>
+  </div>
+</div>
+
+{# ── Product grid ── #}
+<div class="container-fluid py-5">
+  <div class="container">
+    {% if category_products_view %}
+      {{ category_products_view }}
+    {% else %}
+      <div class="text-center py-5">
+        <i class="fas fa-box-open fa-3x text-muted opacity-50 mb-3"></i>
+        <p class="text-muted">{{ 'No products found in this category.'|t }}</p>
+        <a href="/products" class="btn btn-primary rounded-pill px-4">{{ 'Browse All Products'|t }}</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
